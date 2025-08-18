@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  stripe-guardian:
+    build:
+      context: .
+      dockerfile: Dockerfile.stripe-guardian
+    container_name: stripe-guardian
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    volumes:
+      - ./logs:/app/logs
+      - ./scripts:/app/scripts
+      - ./server:/app/server
+    ports:
+      - "3001:3001"
+    networks:
+      - stripe-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Add a monitoring dashboard
+  stripe-monitor:
+    image: grafana/grafana:latest
+    container_name: stripe-monitor
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    networks:
+      - stripe-network
+    depends_on:
+      - stripe-guardian
+
+networks:
+  stripe-network:
+    driver: bridge
+
+volumes:
+  grafana-storage:
