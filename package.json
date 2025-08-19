@@ -26,6 +26,8 @@
     "stripe:guardian": "node scripts/auto-stripe-guardian.js",
     "stripe:guardian:docker": "docker-compose -f docker-compose.stripe-guardian.yml up -d",
     "stripe:guardian:stop": "docker-compose -f docker-compose.stripe-guardian.yml down",
+    "deploy:vercel": "vercel --prod",
+    "vercel": "vercel",
     "test:mobile-payments": "npx expo start --tunnel",
     "test:mobile-payment": "node scripts/test-mobile-payment-fallback.js",
     "lint": "expo lint",

@@ -28,10 +28,12 @@ Stripe Guardian is an intelligent monitoring system that:
 - Automatic restart of failed services
 - Comprehensive logging and error tracking
 
-### 🐳 Production Ready
-- Docker containerization for easy deployment
+### 🚀 Production Ready
+- Local development with npm scripts
 - Health checks and auto-restart policies
 - Monitoring dashboard with Grafana
+- **Vercel deployment** for production webhooks
+- Optional Docker deployment for production
 
 ## 🏗️ Architecture
 
@@ -51,11 +53,16 @@ Stripe Guardian is an intelligent monitoring system that:
 
 ### Prerequisites
 - Node.js 20+ (required for package compatibility)
-- Docker and Docker Compose (for production deployment)
 - Stripe account with API keys
 - Supabase project with service role key
 
-**Note**: For Windows development, Docker is optional. You can run the services locally using Node.js.
+**Note**: This setup guide focuses on local development. Docker is optional and only needed for production deployment.
+
+### 🎯 Simple Setup (No Docker)
+1. **Install dependencies**: `npm install`
+2. **Create `.env` file** with your credentials
+3. **Start services**: `npm run dev:stripe`
+4. **Access webhook**: `http://localhost:3001/health`
 
 ### 1. Clone and Install
 ```bash
@@ -99,22 +106,7 @@ docker run -d \
 
 ### 3. Start the System
 
-#### Option A: Docker (Recommended for Production)
-```bash
-# Build and start all services
-docker-compose up -d --build
-
-# View logs
-docker-compose logs -f stripe-guardian
-
-# Stop services
-docker-compose down
-
-# Rebuild if you make changes
-docker-compose build --no-cache
-```
-
-#### Option B: Local Development
+#### Local Development (Recommended)
 ```bash
 # Start webhook server
 npm run webhook:dev
@@ -126,7 +118,7 @@ npm run stripe:guardian
 npm run dev:stripe
 ```
 
-#### Option C: Windows Development
+#### Windows Development
 ```bash
 # Start webhook server
 npm run webhook:dev
@@ -136,6 +128,21 @@ npm run stripe:guardian
 
 # For Windows, use the webhook + guardian combination
 npm run dev:stripe
+```
+
+#### Deploy to Vercel (Production)
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy to Vercel
+vercel
+
+# Set environment variables in Vercel dashboard
+# STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+
+# Update Stripe webhook URL to your Vercel domain
+# https://your-app.vercel.app/webhook
 ```
 
 ## 📋 Available Scripts
@@ -155,25 +162,13 @@ npm run dev:webhook            # Start webhook + app
 npm run dev:stripe             # Start guardian + app
 ```
 
-### Docker Management
+### Docker Management (Optional)
 ```bash
 npm run stripe:guardian:docker # Start with Docker
 npm run stripe:guardian:stop   # Stop Docker services
 ```
 
-**Note**: Docker commands require Docker Desktop to be installed and running. For Windows users, ensure Docker Desktop is properly configured.
-
-### Docker Build Commands
-```bash
-# Build the image
-docker build -t stripe-guardian .
-
-# Build with no cache (if you encounter issues)
-docker build --no-cache -t stripe-guardian .
-
-# Run the built image
-docker run -d --name stripe-guardian -p 3001:3001 stripe-guardian
-```
+**Note**: Docker is optional and only needed for production deployment. For local development, use the npm scripts above.
 
 ## 🔧 Configuration
 
@@ -200,13 +195,11 @@ const CONFIG = {
 
 ### Health Checks
 - **Webhook Server**: `GET /health` and `GET /ready`
-- **Docker Health**: Built-in container health checks
 - **Guardian Status**: Continuous monitoring with auto-fix
 
 ### Logging
 - **File Logs**: Daily log files in `logs/` directory
 - **Console Output**: Real-time logging to console
-- **Docker Logs**: Accessible via `docker-compose logs`
 
 ### Grafana Dashboard
 Access monitoring dashboard at `http://localhost:3000`:
@@ -223,10 +216,7 @@ Access monitoring dashboard at `http://localhost:3000`:
 # Check environment variables
 npm run stripe:health-check
 
-# Check logs (if using Docker)
-docker-compose logs stripe-guardian
-
-# Check logs (if running locally)
+# Check logs (running locally)
 # Logs will appear in the console and logs/ directory
 ```
 
@@ -253,42 +243,15 @@ NODE_ENV=development
 DEBUG=stripe-guardian:*
 ```
 
-### Docker Build Issues
+### Docker Build Issues (Optional)
 
-#### Missing .env File
-If the build fails because of missing `.env` file:
+**Note**: Docker is only needed for production deployment. For local development, skip this section.
+
+If you encounter Docker build issues:
 ```bash
-# The Dockerfile now handles this automatically
-# It creates a default .env file during build
-# You can override values at runtime
-```
-
-#### Node.js Version Compatibility
-If you encounter engine warnings during Docker build:
-```bash
-# The Dockerfile now uses Node.js 20 for compatibility
-# If you still see warnings, you can force install with:
-docker build --build-arg NODE_OPTIONS="--legacy-peer-deps" -t stripe-guardian .
-```
-
-#### Build Cache Issues
-If the build fails or you need to rebuild:
-```bash
-# Clear Docker build cache
-docker builder prune
-
-# Rebuild without cache
-docker build --no-cache -t stripe-guardian .
-```
-
-#### File Copy Issues
-If you get "COPY failed" errors:
-```bash
-# Ensure all required directories exist
-ls -la scripts/ server/
-
-# Check if .dockerignore is excluding needed files
-# The .dockerignore file is now optimized for this project
+# The Dockerfile handles most issues automatically
+# For production deployment, refer to Docker documentation
+# For local development, use npm scripts instead
 ```
 
 ### Windows-Specific Issues
@@ -356,6 +319,36 @@ For issues and questions:
 - Review the logs in `logs/` directory
 - Open an issue on GitHub
 - Check Stripe and Supabase documentation
+
+## 🚀 Vercel Deployment
+
+### Quick Deploy
+1. **Push to GitHub** - Ensure your code is in a GitHub repository
+2. **Connect to Vercel** - Go to [vercel.com](https://vercel.com) and import your repo
+3. **Set Environment Variables** - Add your Stripe and Supabase credentials
+4. **Deploy** - Vercel will automatically deploy your webhook server
+
+### Environment Variables in Vercel
+Set these in your Vercel project settings:
+- `STRIPE_SECRET_KEY` - Your Stripe secret key
+- `STRIPE_WEBHOOK_SECRET` - Your Stripe webhook secret
+- `SUPABASE_URL` - Your Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key
+
+### Update Stripe Webhook URL
+After deployment, update your Stripe webhook endpoint to:
+```
+https://your-app-name.vercel.app/webhook
+```
+
+### Local Guardian + Vercel Webhook
+You can run the guardian locally while using the Vercel-hosted webhook:
+```bash
+# Start local guardian (connects to Vercel webhook)
+npm run stripe:guardian
+
+# Guardian will monitor the Vercel webhook endpoint
+```
 
 ---
 
