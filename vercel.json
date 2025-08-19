@@ -32,6 +32,14 @@
       "dest": "/api/stripe/verify-session.js"
     },
     {
+      "src": "/api/stripe/create-customer",
+      "dest": "/api/stripe/create-customer.js"
+    },
+    {
+      "src": "/api/stripe/create-paymentsheet",
+      "dest": "/api/stripe/create-paymentsheet.js"
+    },
+    {
       "src": "/api/health",
       "dest": "/api/health.js"
     },
