@@ -7,7 +7,29 @@ const Stripe = require('stripe');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+
+// Load environment variables (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    require('dotenv').config();
+  } catch (error) {
+    console.log('dotenv not available, using system environment variables');
+  }
+}
+
+// Validate required environment variables
+const requiredEnvVars = [
+  'STRIPE_SECRET_KEY',
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars);
+  console.error('Please set these in your Render environment variables');
+  process.exit(1);
+}
 
 // Initialize clients
 const supabase = createClient(
@@ -45,17 +67,27 @@ function log(message, level = 'INFO') {
   
   console.log(logMessage);
   
-  // Also write to log file
+  // Also write to log file (only if we have write permissions)
   try {
     fs.appendFileSync(LOG_FILE, logMessage + '\n');
   } catch (error) {
-    console.error('Failed to write to log file:', error.message);
+    // In production environments, we might not have write permissions
+    // This is fine, we'll just log to console
   }
 }
 
 // Create HTTP server for Render health checks
 const server = http.createServer((req, res) => {
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
   
   if (req.url === '/health') {
     const healthStatus = {
@@ -71,7 +103,8 @@ const server = http.createServer((req, res) => {
         nodeEnv: process.env.NODE_ENV,
         hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
         hasSupabaseUrl: !!process.env.SUPABASE_URL,
-        hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+        hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        port: CONFIG.port
       }
     };
     
@@ -87,9 +120,23 @@ const server = http.createServer((req, res) => {
     
     res.writeHead(200);
     res.end(JSON.stringify(readiness, null, 2));
+  } else if (req.url === '/') {
+    const info = {
+      service: 'Stripe Guardian',
+      version: '1.0.0',
+      status: 'running',
+      timestamp: new Date().toISOString(),
+      endpoints: {
+        health: '/health',
+        ready: '/ready'
+      }
+    };
+    
+    res.writeHead(200);
+    res.end(JSON.stringify(info, null, 2));
   } else {
     res.writeHead(404);
-    res.end(JSON.stringify({ error: 'Not Found' }));
+    res.end(JSON.stringify({ error: 'Not Found', availableEndpoints: ['/', '/health', '/ready'] }));
   }
 });
 
@@ -483,6 +530,10 @@ process.on('SIGTERM', async () => {
 // Main execution
 async function main() {
   try {
+    log('🚀 Stripe Guardian starting up...');
+    log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    log(`Port: ${CONFIG.port}`);
+    
     // Start HTTP server
     server.listen(CONFIG.port, () => {
       log(`HTTP server listening on port ${CONFIG.port}`);
