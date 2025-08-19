@@ -1,23 +1,22 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server/webhook-server.js",
-      "use": "@vercel/node"
-    }
-  ],
   "routes": [
     {
-      "src": "/(.*)",
-      "dest": "/server/webhook-server.js"
+      "src": "/webhook",
+      "dest": "/api/webhook"
+    },
+    {
+      "src": "/health",
+      "dest": "/api/webhook"
+    },
+    {
+      "src": "/ready",
+      "dest": "/api/webhook"
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "server/webhook-server.js": {
-      "maxDuration": 30
-    }
   }
 }
+
+

@@ -65,6 +65,8 @@ After deployment, update your Stripe webhook endpoint to:
 https://your-app-name.vercel.app/webhook
 ```
 
+**Note**: The webhook is now deployed as `/api/webhook` but accessible at `/webhook` for convenience.
+
 ## 🧪 Testing Your Deployment
 
 ### 1. Health Check
@@ -77,6 +79,12 @@ curl https://your-app-name.vercel.app/health
 ```bash
 curl https://your-app-name.vercel.app/ready
 # Should return readiness status
+```
+
+### 3. Direct API Access
+```bash
+curl https://your-app-name.vercel.app/api/webhook
+# Access the webhook directly
 ```
 
 ### 3. Test Webhook

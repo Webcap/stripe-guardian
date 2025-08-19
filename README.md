@@ -341,6 +341,8 @@ After deployment, update your Stripe webhook endpoint to:
 https://your-app-name.vercel.app/webhook
 ```
 
+**Note**: The webhook is deployed as `/api/webhook` but accessible at `/webhook` for convenience.
+
 ### Local Guardian + Vercel Webhook
 You can run the guardian locally while using the Vercel-hosted webhook:
 ```bash
