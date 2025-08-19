@@ -135,14 +135,39 @@ module.exports = async (req, res) => {
       },
     });
 
+    // Create ephemeral key for the customer
+    let ephemeralKey;
+    try {
+      ephemeralKey = await stripe.ephemeralKeys.create(
+        { customer: customerId },
+        { apiVersion: '2024-06-20' }
+      );
+      console.log(`Created ephemeral key for customer ${customerId}`);
+    } catch (ephemeralKeyError) {
+      console.error('Error creating ephemeral key:', ephemeralKeyError);
+      res.writeHead(500, corsHeaders);
+      res.end(JSON.stringify({ 
+        error: 'Failed to create ephemeral key',
+        details: ephemeralKeyError.message 
+      }));
+      return;
+    }
+
+    // Prepare response data
+    const responseData = {
+      success: true,
+      paymentIntent: paymentIntent.client_secret, // Client expects 'paymentIntent' not 'clientSecret'
+      paymentIntentId: paymentIntent.id,
+      ephemeralKey: ephemeralKey.secret,
+      customer: customerId, // Client expects 'customer' not 'customerId'
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+    };
+
+    console.log('PaymentSheet API response data:', responseData);
+
     // Return payment sheet configuration
     res.writeHead(200, corsHeaders);
-    res.end(JSON.stringify({
-      success: true,
-      clientSecret: paymentIntent.client_secret,
-      customerId: customerId,
-      paymentIntentId: paymentIntent.id
-    }));
+    res.end(JSON.stringify(responseData));
 
   } catch (error) {
     console.error('Create payment sheet error:', error);
