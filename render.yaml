@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: stripe-guardian
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node scripts/auto-stripe-guardian-render.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: WEBHOOK_PORT
+        value: 3001
+    healthCheckPath: /health
+    autoDeploy: true

@@ -179,7 +179,7 @@ async function performHealthCheck() {
     try {
       const { data: premiumUsers, error } = await supabase
         .from('user_profiles')
-        .select('id, stripe_customer_id, premium')
+        .select('id, premium, stripe_customer_id')
         .not('premium', 'is', null);
       
       if (!error && premiumUsers) {
@@ -187,7 +187,8 @@ async function performHealthCheck() {
           if (!user.stripe_customer_id) {
             healthResults.customerSync.push({
               userId: user.id,
-              issue: 'Missing Stripe customer ID'
+              issue: 'Missing Stripe customer ID',
+              premium: user.premium
             });
           }
         });
@@ -249,37 +250,37 @@ async function autoFixCustomerSyncIssues(syncIssues) {
       
       log(`Email from user profile: ${userEmail || 'not found'}`);
       
-             if (!userEmail) {
-         log(`Email not found in user_profiles for ${issue.userId}, trying auth admin API...`, 'WARN');
-         
-         try {
-           // Get user's email using Supabase auth admin API
-           const { data: user, error: userError } = await supabase.auth.admin.getUserById(issue.userId);
-           
-           if (userError) {
-             log(`Error fetching user email for ${issue.userId}: ${userError.message}`, 'ERROR');
-             
-             // Create a fallback email using the user ID (format: user-{first8chars}@notez-react.app)
-             userEmail = `user-${issue.userId.substring(0, 8)}@notez-react.app`;
-             log(`Using fallback email due to auth API error: ${userEmail}`, 'WARN');
-           } else if (!user || !user.user || !user.user.email) {
-             log(`User email not found for ${issue.userId}, user data: ${JSON.stringify(user)}`, 'WARN');
-             
-             // Create a fallback email using the user ID (format: user-{first8chars}@notez-react.app)
-             userEmail = `user-${issue.userId.substring(0, 8)}@notez-react.app`;
-             log(`Using fallback email: ${userEmail}`, 'WARN');
-           } else {
-             userEmail = user.user.email;
-             log(`Successfully retrieved email from auth admin API: ${userEmail}`);
-           }
-         } catch (error) {
-           log(`Unexpected error fetching user email for ${issue.userId}: ${error.message}`, 'ERROR');
-           
-                        // Create a fallback email using the user ID (format: user-{first8chars}@notez-react.app)
-             userEmail = `user-${issue.userId.substring(0, 8)}@notez-react.app`;
-             log(`Using fallback email due to unexpected error: ${userEmail}`, 'WARN');
-         }
-       }
+      if (!userEmail) {
+        log(`Email not found in user_profiles for ${issue.userId}, trying auth admin API...`, 'WARN');
+        
+        try {
+          // Get user's email using Supabase auth admin API
+          const { data: user, error: userError } = await supabase.auth.admin.getUserById(issue.userId);
+          
+          if (userError) {
+            log(`Error fetching user email for ${issue.userId}: ${userError.message}`, 'ERROR');
+            
+            // Create a fallback email using the user ID (format: user-{first8chars}@notez-react.app)
+            userEmail = `user-${issue.userId.substring(0, 8)}@notez-react.app`;
+            log(`Using fallback email due to auth API error: ${userEmail}`, 'WARN');
+          } else if (!user || !user.user || !user.user.email) {
+            log(`User email not found for ${issue.userId}, user data: ${JSON.stringify(user)}`, 'WARN');
+            
+            // Create a fallback email using the user ID (format: user-{first8chars}@notez-react.app)
+            userEmail = `user-${issue.userId.substring(0, 8)}@notez-react.app`;
+            log(`Using fallback email: ${userEmail}`, 'WARN');
+          } else {
+            userEmail = user.user.email;
+            log(`Successfully retrieved email from auth admin API: ${userEmail}`);
+          }
+        } catch (error) {
+          log(`Unexpected error fetching user email for ${issue.userId}: ${error.message}`, 'ERROR');
+          
+          // Create a fallback email using the user ID (format: user-{first8chars}@notez-react.app)
+          userEmail = `user-${issue.userId.substring(0, 8)}@notez-react.app`;
+          log(`Using fallback email due to unexpected error: ${userEmail}`, 'WARN');
+        }
+      }
 
       log(`Found email ${userEmail} for user ${issue.userId}`);
 

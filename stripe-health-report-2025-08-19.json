@@ -1,0 +1,180 @@
+{
+  "webhookServer": false,
+  "webhookEvents": [
+    {
+      "id": "evt_1RxqLhJ8pJSkCNufl7WPE0WF",
+      "type": "customer.subscription.updated",
+      "created": "2025-08-19T14:17:16.000Z",
+      "livemode": false,
+      "status": "active"
+    },
+    {
+      "id": "evt_1RxqLiJ8pJSkCNufKJeKan7r",
+      "type": "invoice.payment_succeeded",
+      "created": "2025-08-19T14:17:16.000Z",
+      "livemode": false,
+      "status": "paid"
+    },
+    {
+      "id": "evt_1RxqLhJ8pJSkCNufaM1rWsiB",
+      "type": "customer.subscription.created",
+      "created": "2025-08-19T14:17:14.000Z",
+      "livemode": false,
+      "status": "incomplete"
+    },
+    {
+      "id": "evt_1RxcuIJ8pJSkCNufIqQpQO8x",
+      "type": "customer.created",
+      "created": "2025-08-18T23:56:06.000Z",
+      "livemode": false,
+      "status": "unknown"
+    },
+    {
+      "id": "evt_1RxcfCJ8pJSkCNufHUQmvJuN",
+      "type": "customer.created",
+      "created": "2025-08-18T23:40:30.000Z",
+      "livemode": false,
+      "status": "unknown"
+    },
+    {
+      "id": "evt_1RxUMeJ8pJSkCNufQYHiUM8w",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T14:48:48.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxUMdJ8pJSkCNufK0NY59IT",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T14:48:47.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxUMcJ8pJSkCNufTu3azRnV",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T14:48:46.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxUMYJ8pJSkCNufs2j0PMRT",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T14:48:42.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxUMXJ8pJSkCNuf3LLFNtJe",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T14:48:40.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxUMWJ8pJSkCNufFFzez9B0",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T14:48:39.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxUMUJ8pJSkCNuflNsYtu2f",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T14:48:38.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxUMSJ8pJSkCNufVmxQ0zUo",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T14:48:35.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxUMDJ8pJSkCNufo384hMHF",
+      "type": "customer.subscription.updated",
+      "created": "2025-08-18T14:48:20.000Z",
+      "livemode": false,
+      "status": "incomplete_expired"
+    },
+    {
+      "id": "evt_1RxUM4J8pJSkCNufZVCpze3z",
+      "type": "customer.subscription.updated",
+      "created": "2025-08-18T14:48:12.000Z",
+      "livemode": false,
+      "status": "incomplete_expired"
+    },
+    {
+      "id": "evt_1RxHNBJ8pJSkCNufnMdpV8Zj",
+      "type": "customer.subscription.updated",
+      "created": "2025-08-18T00:56:28.000Z",
+      "livemode": false,
+      "status": "active"
+    },
+    {
+      "id": "evt_1RxHNBJ8pJSkCNufqCTFZjWw",
+      "type": "invoice.payment_succeeded",
+      "created": "2025-08-18T00:56:28.000Z",
+      "livemode": false,
+      "status": "paid"
+    },
+    {
+      "id": "evt_1RxHNBJ8pJSkCNufGPMEiLWo",
+      "type": "customer.subscription.created",
+      "created": "2025-08-18T00:56:26.000Z",
+      "livemode": false,
+      "status": "incomplete"
+    },
+    {
+      "id": "evt_1RxHLOJ8pJSkCNufwZNDAoT8",
+      "type": "customer.subscription.deleted",
+      "created": "2025-08-18T00:54:37.000Z",
+      "livemode": false,
+      "status": "canceled"
+    },
+    {
+      "id": "evt_1RxHHTJ8pJSkCNufprDv6d2v",
+      "type": "customer.subscription.created",
+      "created": "2025-08-18T00:50:34.000Z",
+      "livemode": false,
+      "status": "incomplete"
+    }
+  ],
+  "customerSync": [
+    {
+      "type": "orphaned_premium",
+      "userId": "0efcb967-531c-4384-9256-21d5d971fbf2",
+      "premium": {
+        "type": null,
+        "isActive": false
+      }
+    },
+    {
+      "type": "orphaned_premium",
+      "userId": "e5b2658b-87f3-4eb0-8d47-13ad48abc5b0",
+      "premium": {
+        "type": null,
+        "isActive": false
+      }
+    },
+    {
+      "type": "orphaned_premium",
+      "userId": "4ca8253c-cb46-4457-9cb1-64d8b680cd91",
+      "premium": {
+        "type": null,
+        "isActive": false
+      }
+    }
+  ],
+  "subscriptionSync": [],
+  "databaseHealth": true,
+  "stripeHealth": true,
+  "recommendations": [
+    "🚨 Start webhook server with: npm run webhook:dev",
+    "⚠️  User 0efcb967-531c-4384-9256-21d5d971fbf2 has premium subscription but no Stripe customer ID",
+    "⚠️  User e5b2658b-87f3-4eb0-8d47-13ad48abc5b0 has premium subscription but no Stripe customer ID",
+    "⚠️  User 4ca8253c-cb46-4457-9cb1-64d8b680cd91 has premium subscription but no Stripe customer ID"
+  ]
+}
