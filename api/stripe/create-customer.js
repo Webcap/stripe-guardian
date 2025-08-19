@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
     // Check if user already exists in Supabase
     let { data: userRow, error: userErr } = await supabase
       .from('user_profiles')
-      .select('id, stripe_customer_id, email')
+      .select('id, stripe_customer_id')
       .eq('id', userId)
       .single();
 
@@ -58,7 +58,8 @@ module.exports = async (req, res) => {
       console.error('Error checking existing user:', userErr);
       res.writeHead(500, corsHeaders);
       res.end(JSON.stringify({ 
-        error: 'Database error while checking user' 
+        error: 'Database error while checking user',
+        details: userErr.message
       }));
       return;
     }
@@ -126,33 +127,47 @@ module.exports = async (req, res) => {
     // Update or create user profile in Supabase
     try {
       if (userRow) {
-        // Update existing user
-        await supabase
+        // Update existing user - only update stripe_customer_id, don't add email column
+        const { error: updateError } = await supabase
           .from('user_profiles')
           .update({ 
             stripe_customer_id: customerId,
-            email: email,
             updated_at: new Date().toISOString()
           })
           .eq('id', userId);
+        
+        if (updateError) {
+          console.error('Error updating user profile:', updateError);
+          throw updateError;
+        }
+        
         console.log(`Updated user ${userId} with Stripe customer ID ${customerId}`);
       } else {
-        // Create new user profile
-        await supabase
+        // Create new user profile - only include fields that exist in the table
+        const { error: insertError } = await supabase
           .from('user_profiles')
           .insert({ 
             id: userId,
-            email: email,
             stripe_customer_id: customerId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
+        
+        if (insertError) {
+          console.error('Error creating user profile:', insertError);
+          throw insertError;
+        }
+        
         console.log(`Created user profile for ${userId} with Stripe customer ID ${customerId}`);
       }
     } catch (dbError) {
       console.error('Error updating user profile:', dbError);
-      // Don't fail the request - the customer was created in Stripe
-      // But log the error for debugging
+      res.writeHead(500, corsHeaders);
+      res.end(JSON.stringify({ 
+        error: 'Failed to update user profile in database',
+        details: dbError.message 
+      }));
+      return;
     }
 
     // Return success response
