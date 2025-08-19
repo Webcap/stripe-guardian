@@ -599,7 +599,6 @@ const server = http.createServer(async (req, res) => {
           metadata: { 
             planId,
             platform,
-            productId,
             userId,
             source: 'paymentsheet'
           },
@@ -856,9 +855,12 @@ const server = http.createServer(async (req, res) => {
           .update({
             premium: {
               isActive: true,
-              planId: planId,
+              type: planId,
               stripeSubscriptionId: subscription.id,
+              stripeCustomerId: paymentIntent.customer,
+              status: subscription.status,
               currentPeriodEnd: currentPeriodEnd,
+              startedAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             },
             updated_at: new Date().toISOString()
