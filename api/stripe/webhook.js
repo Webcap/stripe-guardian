@@ -54,12 +54,26 @@ async function handleCustomerCreated(customer) {
     try {
         console.log(`Syncing new customer: ${customer.id} (${customer.email})`);
         
-        // Check if user exists in Supabase
+        // Check if user exists in Supabase by Stripe customer ID first
         const { data: existingUser, error: userError } = await supabase
             .from('user_profiles')
-            .select('id, email, stripe_customer_id')
-            .eq('email', customer.email)
+            .select('id, stripe_customer_id')
+            .eq('stripe_customer_id', customer.id)
             .single();
+        
+        // If no user found by Stripe customer ID, try to find by email in auth.users
+        let userByEmail = null;
+        if (userError && userError.code === 'PGRST116') {
+            try {
+                // Use auth admin API to find user by email
+                const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
+                if (!authError && authUser.users) {
+                    userByEmail = authUser.users.find(u => u.email === customer.email);
+                }
+            } catch (authError) {
+                console.warn('Could not check auth.users for email:', authError);
+            }
+        }
         
         if (userError && userError.code !== 'PGRST116') {
             console.error('Error checking existing user:', userError);
@@ -81,12 +95,12 @@ async function handleCustomerCreated(customer) {
             } else {
                 console.log(`Updated user ${existingUser.id} with Stripe customer ID ${customer.id}`);
             }
-        } else {
-            // Create new user profile if doesn't exist
+        } else if (userByEmail) {
+            // User exists in auth but not in user_profiles, create profile
             const { error: insertError } = await supabase
                 .from('user_profiles')
                 .insert({
-                    email: customer.email,
+                    id: userByEmail.id,
                     stripe_customer_id: customer.id,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
@@ -95,8 +109,12 @@ async function handleCustomerCreated(customer) {
             if (insertError) {
                 console.error('Error creating new user profile:', insertError);
             } else {
-                console.log(`Created new user profile for Stripe customer ${customer.id}`);
+                console.log(`Created new user profile for existing auth user ${userByEmail.id}`);
             }
+        } else {
+            // No user found, this is a new customer
+            console.log(`No existing user found for Stripe customer ${customer.id} (${customer.email})`);
+            console.log('Note: New users should be created through the main application, not via Stripe webhooks');
         }
     } catch (error) {
         console.error('Error handling customer created:', error);
@@ -114,7 +132,7 @@ async function handleCustomerUpdated(customer) {
                 stripe_customer_id: customer.id,
                 updated_at: new Date().toISOString()
             })
-            .eq('email', customer.email);
+            .eq('stripe_customer_id', customer.id);
         
         if (updateError) {
             console.error('Error updating user profile:', updateError);

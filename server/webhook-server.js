@@ -251,7 +251,7 @@ const server = http.createServer(async (req, res) => {
         const sb = getSupabase();
         let { data: userRow, error: userErr } = await sb
           .from('user_profiles')
-          .select('id, stripe_customer_id, email, premium')
+          .select('id, stripe_customer_id, premium')
           .eq('id', userId)
           .single();
         if (userErr || !userRow) {
@@ -260,8 +260,8 @@ const server = http.createServer(async (req, res) => {
             const now = new Date().toISOString();
             const ins = await sb
               .from('user_profiles')
-              .insert({ id: userId, email: email || null, created_at: now, updated_at: now })
-              .select('id, stripe_customer_id, email, premium')
+              .insert({ id: userId, created_at: now, updated_at: now })
+              .select('id, stripe_customer_id, premium')
               .single();
             userRow = ins.data || null;
           } catch (e) {
@@ -497,7 +497,7 @@ const server = http.createServer(async (req, res) => {
         // Find or create customer
         let { data: userRow, error: userErr } = await sb
           .from('user_profiles')
-          .select('id, stripe_customer_id, email, premium')
+          .select('id, stripe_customer_id, premium')
           .eq('id', userId)
           .single();
 
@@ -506,8 +506,8 @@ const server = http.createServer(async (req, res) => {
             const now = new Date().toISOString();
             const ins = await sb
               .from('user_profiles')
-              .insert({ id: userId, email: email || null, created_at: now, updated_at: now })
-              .select('id, stripe_customer_id, email, premium')
+              .insert({ id: userId, created_at: now, updated_at: now })
+              .select('id, stripe_customer_id, premium')
               .single();
             userRow = ins.data || null;
           } catch (e) {
@@ -660,7 +660,7 @@ const server = http.createServer(async (req, res) => {
         // Find or create customer
         let { data: userRow, error: userErr } = await sb
           .from('user_profiles')
-          .select('id, stripe_customer_id, email, premium')
+          .select('id, stripe_customer_id, premium')
           .eq('id', userId)
           .single();
 
@@ -669,7 +669,7 @@ const server = http.createServer(async (req, res) => {
             const now = new Date().toISOString();
             const ins = await sb
               .from('user_profiles')
-              .insert({ id: userId, email: email || null, created_at: now, updated_at: now })
+              .insert({ id: userId, created_at: now, updated_at: now })
               .single();
             userRow = ins.data || null;
           } catch (e) {

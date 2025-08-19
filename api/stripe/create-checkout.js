@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
     // Find or create customer by storing id on user_profiles
     let { data: userRow, error: userErr } = await supabase
       .from('user_profiles')
-      .select('id, stripe_customer_id, email, premium')
+      .select('id, stripe_customer_id, premium')
       .eq('id', userId)
       .single();
 
@@ -61,11 +61,10 @@ module.exports = async (req, res) => {
           .from('user_profiles')
           .insert({ 
             id: userId, 
-            email: email || null, 
             created_at: now, 
             updated_at: now 
           })
-          .select('id, stripe_customer_id, email, premium')
+          .select('id, stripe_customer_id, premium')
           .single();
         userRow = ins.data || null;
       } catch (e) {
