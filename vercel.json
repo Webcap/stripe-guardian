@@ -1,22 +1,29 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "server/api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
     {
-      "src": "/webhook",
-      "dest": "/api/webhook"
+      "src": "/api/stripe/webhook",
+      "dest": "/server/api/stripe/webhook.js"
     },
     {
       "src": "/health",
-      "dest": "/api/webhook"
+      "dest": "/server/api/health.js"
     },
     {
       "src": "/ready",
-      "dest": "/api/webhook"
+      "dest": "/server/api/ready.js"
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "STRIPE_SECRET_KEY": "@stripe-secret-key",
+    "STRIPE_WEBHOOK_SECRET": "@stripe-webhook-secret",
+    "SUPABASE_URL": "@supabase-url",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase-service-role-key"
   }
 }
-
-
