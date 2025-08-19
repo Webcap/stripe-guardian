@@ -250,8 +250,24 @@ async function handlePaymentFailed(invoice) {
 }
 
 export default async function handler(req, res) {
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', 'https://stripe.webcap.media');
+    // Set CORS headers - allow both production and development origins
+    const allowedOrigins = [
+        'https://stripe.webcap.media',
+        'https://webcap.media',
+        'http://localhost:8081',
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:8081',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001'
+    ];
+    
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', 'https://stripe.webcap.media');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Stripe-Signature');
     

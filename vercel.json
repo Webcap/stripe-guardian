@@ -1,17 +1,27 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
   "routes": [
     {
-      "src": "/webhook",
-      "dest": "/api/webhook"
+      "src": "/api/stripe/webhook",
+      "dest": "/api/stripe/webhook.js"
     },
     {
-      "src": "/health",
-      "dest": "/api/webhook"
+      "src": "/api/stripe/sync-plan",
+      "dest": "/api/stripe/sync-plan.js"
     },
     {
-      "src": "/ready",
-      "dest": "/api/webhook"
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/api/ready",
+      "dest": "/api/ready.js"
     }
   ]
 }
