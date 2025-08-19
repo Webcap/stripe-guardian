@@ -65,6 +65,8 @@ npm install
 ```
 
 ### 2. Environment Setup
+
+#### For Local Development
 Create a `.env` file with your credentials:
 ```bash
 # Stripe Configuration
@@ -77,6 +79,22 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # Webhook Server
 WEBHOOK_PORT=3001
+```
+
+#### For Docker Deployment
+The Docker container will create a default `.env` file. You can override environment variables using:
+```bash
+# Method 1: Docker run with environment variables
+docker run -d \
+  -e STRIPE_SECRET_KEY=sk_test_... \
+  -e STRIPE_WEBHOOK_SECRET=whsec_... \
+  -e SUPABASE_URL=https://your-project.supabase.co \
+  -e SUPABASE_SERVICE_ROLE_KEY=eyJ... \
+  -p 3001:3001 \
+  stripe-guardian
+
+# Method 2: Docker Compose with .env file
+# Create .env file and docker-compose will use it automatically
 ```
 
 ### 3. Start the System
@@ -237,6 +255,14 @@ DEBUG=stripe-guardian:*
 
 ### Docker Build Issues
 
+#### Missing .env File
+If the build fails because of missing `.env` file:
+```bash
+# The Dockerfile now handles this automatically
+# It creates a default .env file during build
+# You can override values at runtime
+```
+
 #### Node.js Version Compatibility
 If you encounter engine warnings during Docker build:
 ```bash
@@ -253,6 +279,16 @@ docker builder prune
 
 # Rebuild without cache
 docker build --no-cache -t stripe-guardian .
+```
+
+#### File Copy Issues
+If you get "COPY failed" errors:
+```bash
+# Ensure all required directories exist
+ls -la scripts/ server/
+
+# Check if .dockerignore is excluding needed files
+# The .dockerignore file is now optimized for this project
 ```
 
 ### Windows-Specific Issues

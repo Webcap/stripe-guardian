@@ -17,10 +17,12 @@ RUN npm ci --only=production --legacy-peer-deps
 # Copy application code
 COPY scripts/ ./scripts/
 COPY server/ ./server/
-COPY .env ./
 
 # Create logs directory
 RUN mkdir -p logs
+
+# Create a default .env file if none exists (for Docker builds)
+RUN echo "# Stripe Guardian Environment Variables\n# Update these values in your deployment environment\nSTRIPE_SECRET_KEY=your_stripe_secret_key_here\nSTRIPE_WEBHOOK_SECRET=your_webhook_secret_here\nSUPABASE_URL=your_supabase_url_here\nSUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here\nWEBHOOK_PORT=3001" > .env
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs

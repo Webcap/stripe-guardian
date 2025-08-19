@@ -4,7 +4,7 @@ services:
   stripe-guardian:
     build:
       context: .
-      dockerfile: Dockerfile.stripe-guardian
+      dockerfile: Dockerfile
     container_name: stripe-guardian
     restart: unless-stopped
     environment:
@@ -15,8 +15,6 @@ services:
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     volumes:
       - ./logs:/app/logs
-      - ./scripts:/app/scripts
-      - ./server:/app/server
     ports:
       - "3001:3001"
     networks:
