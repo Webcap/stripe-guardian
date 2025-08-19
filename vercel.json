@@ -24,6 +24,14 @@
       "dest": "/api/stripe/sync-plan.js"
     },
     {
+      "src": "/api/stripe/create-checkout",
+      "dest": "/api/stripe/create-checkout.js"
+    },
+    {
+      "src": "/api/stripe/verify-session",
+      "dest": "/api/stripe/verify-session.js"
+    },
+    {
       "src": "/api/health",
       "dest": "/api/health.js"
     },
