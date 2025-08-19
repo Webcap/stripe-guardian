@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
@@ -11,8 +11,8 @@ RUN apk add --no-cache \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies with legacy peer deps for compatibility
+RUN npm ci --only=production --legacy-peer-deps
 
 # Copy application code
 COPY scripts/ ./scripts/
