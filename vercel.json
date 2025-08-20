@@ -48,6 +48,10 @@
       "dest": "/api/ready.js"
     },
     {
+      "src": "/api/test",
+      "dest": "/api/test.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/api/[...catchall].js"
     }

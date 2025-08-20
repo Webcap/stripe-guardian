@@ -2,14 +2,28 @@ const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
 
 // Initialize Stripe and Supabase clients
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { 
-  apiVersion: '2024-06-20' 
-});
+let stripe, supabase;
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+try {
+  console.log('Environment variables check:');
+  console.log('STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
+  console.log('SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
+  console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { 
+    apiVersion: '2024-06-20' 
+  });
+  console.log('Stripe client initialized successfully');
+  
+  supabase = createClient(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+  console.log('Supabase client initialized successfully');
+} catch (initError) {
+  console.error('Error initializing clients:', initError);
+  // We'll handle this in the main function
+}
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -19,9 +33,14 @@ const corsHeaders = {
   'Content-Type': 'application/json'
 };
 
-module.exports = async (req, res) => {
+const handler = async (req, res) => {
+  console.log('Create PaymentSheet handler called');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  
   // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
     res.writeHead(200, corsHeaders);
     res.end();
     return;
@@ -35,6 +54,17 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // Check if clients are properly initialized
+    if (!stripe || !supabase) {
+      console.error('Clients not initialized properly');
+      res.writeHead(500, corsHeaders);
+      res.end(JSON.stringify({ 
+        error: 'Service not properly initialized',
+        details: 'Payment service is temporarily unavailable'
+      }));
+      return;
+    }
+
     // Parse request body
     const { userId, email, planId, productId, platform } = req.body || {};
     
@@ -178,3 +208,5 @@ module.exports = async (req, res) => {
     }));
   }
 };
+
+module.exports = handler;
