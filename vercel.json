@@ -40,6 +40,10 @@
       "dest": "/api/stripe/create-paymentsheet.js"
     },
     {
+      "src": "/api/stripe/confirm-paymentsheet",
+      "dest": "/api/stripe/confirm-paymentsheet.js"
+    },
+    {
       "src": "/api/health",
       "dest": "/api/health.js"
     },

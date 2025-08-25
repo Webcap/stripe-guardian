@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
     }
 
     // Debug logging to understand request structure
-    console.log('Catchall handler - req object keys:', Object.keys(req));
+    console.log('Catchall handler - req.object keys:', Object.keys(req));
     console.log('Catchall handler - req.url:', req.url);
     console.log('Catchall handler - req.method:', req.method);
 
@@ -54,6 +54,7 @@ module.exports = async (req, res) => {
         '/api/stripe/verify-session',
         '/api/stripe/create-customer',
         '/api/stripe/create-paymentsheet',
+        '/api/stripe/confirm-paymentsheet',
         '/api/health',
         '/api/ready',
         '/api/test'
