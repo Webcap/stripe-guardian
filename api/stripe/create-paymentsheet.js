@@ -66,12 +66,21 @@ const handler = async (req, res) => {
     }
 
     // Parse request body
-    const { userId, email, planId, productId, platform } = req.body || {};
+    const { userId, email, planId, stripePriceId, productId, platform } = req.body || {};
     
     if (!userId || !email || !planId) {
       res.writeHead(400, corsHeaders);
       res.end(JSON.stringify({ 
         error: 'Missing required fields: userId, email, planId' 
+      }));
+      return;
+    }
+
+    // Validate stripePriceId if provided
+    if (!stripePriceId) {
+      res.writeHead(400, corsHeaders);
+      res.end(JSON.stringify({ 
+        error: 'Missing stripePriceId - required for correct pricing' 
       }));
       return;
     }
@@ -149,14 +158,43 @@ const handler = async (req, res) => {
       // Continue with payment sheet creation
     }
 
-    // Create payment intent
+    // Get plan details and validate Stripe price
+    let planPrice, planCurrency;
+    try {
+      // Retrieve the Stripe price to get the correct amount
+      const stripePrice = await stripe.prices.retrieve(stripePriceId);
+      planPrice = stripePrice.unit_amount;
+      planCurrency = stripePrice.currency;
+      
+      console.log(`Retrieved Stripe price: ${stripePrice.id}, amount: ${planPrice} cents, currency: ${planCurrency}`);
+      
+      // Validate the price exists and is active
+      if (!stripePrice.active) {
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ 
+          error: 'Selected plan price is not active' 
+        }));
+        return;
+      }
+    } catch (priceError) {
+      console.error('Error retrieving Stripe price:', priceError);
+      res.writeHead(400, corsHeaders);
+      res.end(JSON.stringify({ 
+        error: 'Invalid plan price ID',
+        details: 'The selected plan price could not be found'
+      }));
+      return;
+    }
+
+    // Create payment intent using the correct price from Stripe
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: 2000, // $20.00 in cents - adjust based on your plan pricing
-      currency: 'usd',
+      amount: planPrice, // Use the actual price from Stripe, not hardcoded amount
+      currency: planCurrency,
       customer: customerId,
       metadata: { 
         userId, 
         planId,
+        stripePriceId, // Store the price ID for reference
         productId,
         platform 
       },
@@ -164,6 +202,8 @@ const handler = async (req, res) => {
         enabled: true,
       },
     });
+
+    console.log(`Created payment intent ${paymentIntent.id} for customer ${customerId} with amount ${planPrice} cents (${(planPrice / 100).toFixed(2)} ${planCurrency.toUpperCase()})`);
 
     // Create ephemeral key for the customer
     let ephemeralKey;
