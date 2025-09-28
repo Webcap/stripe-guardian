@@ -16,6 +16,165 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20'
 });
 
+// Initialize Supabase client for main app database
+const mainAppSupabase = createClient(
+  process.env.WIZNOTE_SUPABASE_URL,
+  process.env.WIZNOTE_SUPABASE_SERVICE_KEY
+);
+
+// Webhook handler functions
+async function handleSubscriptionCreated(subscription) {
+  try {
+    console.log(`📅 Subscription created: ${subscription.id} for customer ${subscription.customer}`);
+    
+    // Find user by Stripe customer ID
+    const { data: user, error: userError } = await mainAppSupabase
+      .from('user_profiles')
+      .select('id')
+      .eq('stripe_customer_id', subscription.customer)
+      .single();
+
+    if (userError || !user) {
+      console.log(`⚠️  No user found for customer ${subscription.customer}`);
+      return;
+    }
+
+    // Update user's premium status
+    const premiumData = {
+      isActive: subscription.status === 'active' || subscription.status === 'trialing',
+      status: subscription.status,
+      stripeSubscriptionId: subscription.id,
+      currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000).toISOString() : null,
+      currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+      updatedAt: new Date().toISOString()
+    };
+
+    const { error: updateError } = await mainAppSupabase
+      .from('user_profiles')
+      .update({
+        premium: premiumData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error(`❌ Error updating user ${user.id} premium status:`, updateError);
+    } else {
+      console.log(`✅ Updated user ${user.id} premium status: ${subscription.status}`);
+    }
+  } catch (error) {
+    console.error('❌ Error handling subscription created:', error);
+  }
+}
+
+async function handleSubscriptionUpdated(subscription) {
+  try {
+    console.log(`📅 Subscription updated: ${subscription.id} for customer ${subscription.customer}, Status: ${subscription.status}`);
+    
+    // Find user by Stripe customer ID
+    const { data: user, error: userError } = await mainAppSupabase
+      .from('user_profiles')
+      .select('id')
+      .eq('stripe_customer_id', subscription.customer)
+      .single();
+
+    if (userError || !user) {
+      console.log(`⚠️  No user found for customer ${subscription.customer}`);
+      return;
+    }
+
+    // Update user's premium status
+    const premiumData = {
+      isActive: subscription.status === 'active' || subscription.status === 'trialing',
+      status: subscription.status,
+      stripeSubscriptionId: subscription.id,
+      currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000).toISOString() : null,
+      currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+      updatedAt: new Date().toISOString()
+    };
+
+    const { error: updateError } = await mainAppSupabase
+      .from('user_profiles')
+      .update({
+        premium: premiumData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error(`❌ Error updating user ${user.id} subscription status:`, updateError);
+    } else {
+      console.log(`✅ Updated user ${user.id} subscription status: ${subscription.status}`);
+    }
+  } catch (error) {
+    console.error('❌ Error handling subscription updated:', error);
+  }
+}
+
+async function handleSubscriptionDeleted(subscription) {
+  try {
+    console.log(`🗑️  Subscription deleted: ${subscription.id} for customer ${subscription.customer}`);
+    
+    // Find user by Stripe customer ID
+    const { data: user, error: userError } = await mainAppSupabase
+      .from('user_profiles')
+      .select('id')
+      .eq('stripe_customer_id', subscription.customer)
+      .single();
+
+    if (userError || !user) {
+      console.log(`⚠️  No user found for customer ${subscription.customer}`);
+      return;
+    }
+
+    // Deactivate user's premium status
+    const premiumData = {
+      isActive: false,
+      status: 'canceled',
+      stripeSubscriptionId: null,
+      currentPeriodStart: null,
+      currentPeriodEnd: null,
+      updatedAt: new Date().toISOString()
+    };
+
+    const { error: updateError } = await mainAppSupabase
+      .from('user_profiles')
+      .update({
+        premium: premiumData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error(`❌ Error deactivating user ${user.id} premium status:`, updateError);
+    } else {
+      console.log(`✅ Deactivated user ${user.id} premium status`);
+    }
+  } catch (error) {
+    console.error('❌ Error handling subscription deleted:', error);
+  }
+}
+
+async function handlePaymentSucceeded(invoice) {
+  try {
+    console.log(`💰 Payment succeeded for invoice: ${invoice.id}`);
+    // Payment succeeded events are handled by subscription updates
+    // This is mainly for logging and additional processing if needed
+  } catch (error) {
+    console.error('❌ Error handling payment succeeded:', error);
+  }
+}
+
+async function handlePaymentFailed(invoice) {
+  try {
+    console.log(`💳 Payment failed for invoice: ${invoice.id}`);
+    // Payment failed events are handled by subscription updates
+    // This is mainly for logging and additional processing if needed
+  } catch (error) {
+    console.error('❌ Error handling payment failed:', error);
+  }
+}
+
 export default async function handler(req, res) {
   // Handle CORS properly
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -50,6 +209,8 @@ export default async function handler(req, res) {
       STRIPE_WEBHOOK_SECRET: !!process.env.STRIPE_WEBHOOK_SECRET,
       SUPABASE_URL: !!process.env.SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      WIZNOTE_SUPABASE_URL: !!process.env.WIZNOTE_SUPABASE_URL,
+      WIZNOTE_SUPABASE_SERVICE_KEY: !!process.env.WIZNOTE_SUPABASE_SERVICE_KEY,
     };
     
     // Check Stripe connection
@@ -63,7 +224,7 @@ export default async function handler(req, res) {
       readiness.errors.push(`Stripe: ${e.message}`);
     }
     
-    // Check Supabase connection
+    // Check Supabase connection (local)
     try {
       await supabase.from('premium_plans').select('id').limit(1);
       readiness.checks.supabase = true;
@@ -71,7 +232,18 @@ export default async function handler(req, res) {
       readiness.ok = false;
       readiness.checks.supabase = false;
       readiness.errors = readiness.errors || [];
-      readiness.errors.push(`Supabase: ${e.message}`);
+      readiness.errors.push(`Supabase (local): ${e.message}`);
+    }
+    
+    // Check main app Supabase connection
+    try {
+      await mainAppSupabase.from('user_profiles').select('id').limit(1);
+      readiness.checks.mainAppSupabase = true;
+    } catch (e) {
+      readiness.ok = false;
+      readiness.checks.mainAppSupabase = false;
+      readiness.errors = readiness.errors || [];
+      readiness.errors.push(`Main App Supabase: ${e.message}`);
     }
     
     return res.status(readiness.ok ? 200 : 503).json(readiness);
@@ -88,13 +260,33 @@ export default async function handler(req, res) {
       const rawBody = req.body;
       const event = stripe.webhooks.constructEvent(rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
 
-      // For now, just acknowledge the webhook
-      // You can add your webhook processing logic here
       console.log('Received Stripe webhook:', event.type);
+      
+      // Process different webhook events
+      switch (event.type) {
+        case 'customer.subscription.created':
+          await handleSubscriptionCreated(event.data.object);
+          break;
+        case 'customer.subscription.updated':
+          await handleSubscriptionUpdated(event.data.object);
+          break;
+        case 'customer.subscription.deleted':
+          await handleSubscriptionDeleted(event.data.object);
+          break;
+        case 'invoice.payment_succeeded':
+          await handlePaymentSucceeded(event.data.object);
+          break;
+        case 'invoice.payment_failed':
+          await handlePaymentFailed(event.data.object);
+          break;
+        default:
+          console.log(`Unhandled webhook event type: ${event.type}`);
+      }
       
       return res.status(200).json({ 
         received: true, 
         event_type: event.type,
+        processed: true,
         timestamp: new Date().toISOString()
       });
     } catch (err) {
