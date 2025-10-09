@@ -65,23 +65,48 @@ const handler = async (req, res) => {
       return;
     }
 
-    const { paymentIntentId, planId, userId } = req.body || {};
+    const { setupIntentId, paymentIntentId, planId, userId, stripePriceId } = req.body || {};
     
-    console.log('Confirming PaymentSheet:', { paymentIntentId, planId, userId });
+    console.log('Confirming PaymentSheet:', { setupIntentId, paymentIntentId, planId, userId, stripePriceId });
     
-    if (!paymentIntentId || !planId || !userId) {
+    // Support both old (paymentIntentId) and new (setupIntentId) for backward compatibility
+    const intentId = setupIntentId || paymentIntentId;
+    
+    if (!intentId || !planId || !userId) {
       res.writeHead(400, corsHeaders);
-      res.end(JSON.stringify({ error: 'Missing required fields: paymentIntentId, planId, userId' }));
+      res.end(JSON.stringify({ error: 'Missing required fields: setupIntentId/paymentIntentId, planId, userId' }));
       return;
     }
 
-    // Retrieve the payment intent
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    // Retrieve the setup intent to get the payment method
+    let paymentMethod, customerId;
     
-    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
-      res.writeHead(400, corsHeaders);
-      res.end(JSON.stringify({ error: 'Payment not completed' }));
-      return;
+    if (setupIntentId) {
+      // New flow: using SetupIntent
+      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+      
+      if (!setupIntent || setupIntent.status !== 'succeeded') {
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ error: 'Payment method not saved' }));
+        return;
+      }
+      
+      paymentMethod = setupIntent.payment_method;
+      customerId = setupIntent.customer;
+      console.log(`SetupIntent succeeded, payment method: ${paymentMethod}`);
+    } else {
+      // Old flow: using PaymentIntent (for backward compatibility)
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+        res.writeHead(400, corsHeaders);
+        res.end(JSON.stringify({ error: 'Payment not completed' }));
+        return;
+      }
+      
+      paymentMethod = paymentIntent.payment_method;
+      customerId = paymentIntent.customer;
+      console.log(`PaymentIntent succeeded, payment method: ${paymentMethod}`);
     }
 
     // Get plan details
@@ -97,11 +122,8 @@ const handler = async (req, res) => {
       return;
     }
 
-    // Get the payment method from the successful payment intent
-    const paymentMethod = paymentIntent.payment_method;
-    
     if (!paymentMethod) {
-      console.error('No payment method found on payment intent');
+      console.error('No payment method found');
       res.writeHead(400, corsHeaders);
       res.end(JSON.stringify({ error: 'Payment method not found' }));
       return;
@@ -109,14 +131,19 @@ const handler = async (req, res) => {
     
     console.log('Creating subscription with payment method:', paymentMethod);
     
-    // Create subscription using the payment method from the payment intent
-    // Use default_payment_method to ensure subscription is active immediately
+    // Use stripePriceId from request body if available, otherwise from plan
+    const priceId = stripePriceId || plan.stripe_price_id;
+    
+    // Create subscription using the payment method
+    // The subscription will handle the first charge automatically
     const subscription = await stripe.subscriptions.create({
-      customer: paymentIntent.customer,
-      items: [{ price: plan.stripe_price_id }],
+      customer: customerId,
+      items: [{ price: priceId }],
       default_payment_method: paymentMethod,
-      payment_behavior: 'error_if_incomplete', // Fail if payment can't be completed
-      payment_settings: { save_default_payment_method: 'on_subscription' },
+      payment_settings: { 
+        save_default_payment_method: 'on_subscription',
+        payment_method_types: ['card'] 
+      },
       expand: ['latest_invoice.payment_intent'],
       metadata: { 
         planId,
@@ -128,7 +155,8 @@ const handler = async (req, res) => {
     console.log('Subscription created:', {
       id: subscription.id,
       status: subscription.status,
-      customer: subscription.customer
+      customer: subscription.customer,
+      latest_invoice_status: subscription.latest_invoice?.status
     });
 
     // Update user premium status

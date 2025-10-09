@@ -186,15 +186,15 @@ const handler = async (req, res) => {
       return;
     }
 
-    // Create payment intent using the correct price from Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: planPrice, // Use the actual price from Stripe, not hardcoded amount
-      currency: planCurrency,
+    // For subscriptions, use SetupIntent instead of PaymentIntent
+    // This collects payment method without charging immediately
+    // The subscription creation will handle the first charge
+    const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
       metadata: { 
         userId, 
         planId,
-        stripePriceId, // Store the price ID for reference
+        stripePriceId,
         productId,
         platform 
       },
@@ -203,7 +203,7 @@ const handler = async (req, res) => {
       },
     });
 
-    console.log(`Created payment intent ${paymentIntent.id} for customer ${customerId} with amount ${planPrice} cents (${(planPrice / 100).toFixed(2)} ${planCurrency.toUpperCase()})`);
+    console.log(`Created setup intent ${setupIntent.id} for customer ${customerId} (subscription will be created after payment method is saved)`);
 
     // Create ephemeral key for the customer
     let ephemeralKey;
@@ -223,14 +223,17 @@ const handler = async (req, res) => {
       return;
     }
 
-    // Prepare response data
+    // Prepare response data for SetupIntent
     const responseData = {
       success: true,
-      paymentIntent: paymentIntent.client_secret, // Client expects 'paymentIntent' not 'clientSecret'
-      paymentIntentId: paymentIntent.id,
+      setupIntent: setupIntent.client_secret,
+      setupIntentId: setupIntent.id,
       ephemeralKey: ephemeralKey.secret,
-      customer: customerId, // Client expects 'customer' not 'customerId'
-      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+      customer: customerId,
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+      // Include plan info so confirm endpoint knows what to subscribe to
+      planId: planId,
+      stripePriceId: stripePriceId
     };
 
     console.log('PaymentSheet API response data:', responseData);
