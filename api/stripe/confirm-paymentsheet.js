@@ -176,11 +176,13 @@ const handler = async (req, res) => {
       .update({
         premium: {
           isActive: true,
+          planId: planId,  // Add planId for subscription management
           type: planId,
           stripeSubscriptionId: subscription.id,
           stripeCustomerId: customerId,
           status: subscription.status,
           currentPeriodEnd: currentPeriodEnd,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
           startedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         },

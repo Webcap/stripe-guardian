@@ -80,16 +80,24 @@ async function handleCheckoutSessionCompleted(session) {
             const currentPeriodEnd = subscription.current_period_end 
                 ? new Date(subscription.current_period_end * 1000).toISOString() 
                 : null;
+            const currentPeriodStart = subscription.current_period_start 
+                ? new Date(subscription.current_period_start * 1000).toISOString() 
+                : null;
+            
+            // Try to extract planId from subscription metadata
+            const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
             
             const { error: updateError } = await supabase
                 .from('user_profiles')
                 .update({ 
                     premium: {
                         isActive: true,
+                        planId: planId,
                         stripeSubscriptionId: subscription.id,
                         stripeCustomerId: session.customer,
                         status: subscription.status,
                         currentPeriodEnd: currentPeriodEnd,
+                        currentPeriodStart: currentPeriodStart,
                         startedAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString()
                     },
@@ -230,6 +238,12 @@ async function handleSubscriptionCreated(subscription) {
         const currentPeriodEnd = subscription.current_period_end 
             ? new Date(subscription.current_period_end * 1000).toISOString() 
             : null;
+        const currentPeriodStart = subscription.current_period_start 
+            ? new Date(subscription.current_period_start * 1000).toISOString() 
+            : null;
+        
+        // Extract planId from subscription metadata
+        const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
         
         // Update user's premium status
         const { error: updateError } = await supabase
@@ -237,10 +251,12 @@ async function handleSubscriptionCreated(subscription) {
             .update({ 
                 premium: {
                     isActive: isActive,
+                    planId: planId,
                     stripeSubscriptionId: subscription.id,
                     stripeCustomerId: subscription.customer,
                     status: subscription.status,
                     currentPeriodEnd: currentPeriodEnd,
+                    currentPeriodStart: currentPeriodStart,
                     startedAt: isActive ? new Date().toISOString() : undefined,
                     updatedAt: new Date().toISOString()
                 },
@@ -268,6 +284,12 @@ async function handleSubscriptionUpdated(subscription) {
         const currentPeriodEnd = subscription.current_period_end 
             ? new Date(subscription.current_period_end * 1000).toISOString() 
             : null;
+        const currentPeriodStart = subscription.current_period_start 
+            ? new Date(subscription.current_period_start * 1000).toISOString() 
+            : null;
+        
+        // Extract planId from subscription metadata
+        const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
         
         // Update subscription status
         const { error: updateError } = await supabase
@@ -275,10 +297,12 @@ async function handleSubscriptionUpdated(subscription) {
             .update({ 
                 premium: {
                     isActive: isActive,
+                    planId: planId,
                     stripeSubscriptionId: subscription.id,
                     stripeCustomerId: subscription.customer,
                     status: subscription.status,
                     currentPeriodEnd: currentPeriodEnd,
+                    currentPeriodStart: currentPeriodStart,
                     updatedAt: new Date().toISOString()
                 },
                 updated_at: new Date().toISOString()
@@ -299,15 +323,23 @@ async function handleSubscriptionDeleted(subscription) {
     try {
         console.log(`Subscription deleted: ${subscription.id} for customer ${subscription.customer}`);
         
+        // Extract planId from subscription metadata
+        const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
+        const currentPeriodEnd = subscription.current_period_end 
+            ? new Date(subscription.current_period_end * 1000).toISOString() 
+            : null;
+        
         // Remove premium status
         const { error: updateError } = await supabase
             .from('user_profiles')
             .update({ 
                 premium: {
                     isActive: false,
+                    planId: planId,
                     stripeSubscriptionId: subscription.id,
                     stripeCustomerId: subscription.customer,
                     status: 'canceled',
+                    currentPeriodEnd: currentPeriodEnd,
                     canceledAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 },
@@ -336,16 +368,24 @@ async function handlePaymentSucceeded(invoice) {
             const currentPeriodEnd = subscription.current_period_end 
                 ? new Date(subscription.current_period_end * 1000).toISOString() 
                 : null;
+            const currentPeriodStart = subscription.current_period_start 
+                ? new Date(subscription.current_period_start * 1000).toISOString() 
+                : null;
+            
+            // Extract planId from subscription metadata
+            const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
             
             const { error: updateError } = await supabase
                 .from('user_profiles')
                 .update({ 
                     premium: {
                         isActive: true,
+                        planId: planId,
                         stripeSubscriptionId: subscription.id,
                         stripeCustomerId: subscription.customer,
                         status: subscription.status,
                         currentPeriodEnd: currentPeriodEnd,
+                        currentPeriodStart: currentPeriodStart,
                         updatedAt: new Date().toISOString()
                     },
                     updated_at: new Date().toISOString()
@@ -373,16 +413,24 @@ async function handlePaymentFailed(invoice) {
             const currentPeriodEnd = subscription.current_period_end 
                 ? new Date(subscription.current_period_end * 1000).toISOString() 
                 : null;
+            const currentPeriodStart = subscription.current_period_start 
+                ? new Date(subscription.current_period_start * 1000).toISOString() 
+                : null;
+            
+            // Extract planId from subscription metadata
+            const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
             
             const { error: updateError } = await supabase
                 .from('user_profiles')
                 .update({ 
                     premium: {
                         isActive: false, // Set to false on payment failure
+                        planId: planId,
                         stripeSubscriptionId: subscription.id,
                         stripeCustomerId: subscription.customer,
                         status: 'past_due',
                         currentPeriodEnd: currentPeriodEnd,
+                        currentPeriodStart: currentPeriodStart,
                         updatedAt: new Date().toISOString()
                     },
                     updated_at: new Date().toISOString()
