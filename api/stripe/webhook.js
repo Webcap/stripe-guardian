@@ -77,13 +77,22 @@ async function handleCheckoutSessionCompleted(session) {
             });
             
             // Update user's premium status immediately
+            const currentPeriodEnd = subscription.current_period_end 
+                ? new Date(subscription.current_period_end * 1000).toISOString() 
+                : null;
+            
             const { error: updateError } = await supabase
                 .from('user_profiles')
                 .update({ 
-                    is_premium: true,
-                    subscription_id: subscription.id,
-                    subscription_status: subscription.status,
-                    stripe_customer_id: session.customer,
+                    premium: {
+                        isActive: true,
+                        stripeSubscriptionId: subscription.id,
+                        stripeCustomerId: session.customer,
+                        status: subscription.status,
+                        currentPeriodEnd: currentPeriodEnd,
+                        startedAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    },
                     updated_at: new Date().toISOString()
                 })
                 .eq('stripe_customer_id', session.customer);
@@ -217,15 +226,24 @@ async function handleSubscriptionCreated(subscription) {
         console.log('Subscription status:', subscription.status);
         
         // Only mark as premium if subscription is active or trialing
-        const isPremium = ['active', 'trialing'].includes(subscription.status);
+        const isActive = ['active', 'trialing'].includes(subscription.status);
+        const currentPeriodEnd = subscription.current_period_end 
+            ? new Date(subscription.current_period_end * 1000).toISOString() 
+            : null;
         
         // Update user's premium status
         const { error: updateError } = await supabase
             .from('user_profiles')
             .update({ 
-                is_premium: isPremium,
-                subscription_id: subscription.id,
-                subscription_status: subscription.status,
+                premium: {
+                    isActive: isActive,
+                    stripeSubscriptionId: subscription.id,
+                    stripeCustomerId: subscription.customer,
+                    status: subscription.status,
+                    currentPeriodEnd: currentPeriodEnd,
+                    startedAt: isActive ? new Date().toISOString() : undefined,
+                    updatedAt: new Date().toISOString()
+                },
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_customer_id', subscription.customer);
@@ -233,7 +251,7 @@ async function handleSubscriptionCreated(subscription) {
         if (updateError) {
             console.error('Error updating premium status:', updateError);
         } else {
-            console.log(`Updated premium status for customer ${subscription.customer} (is_premium: ${isPremium}, status: ${subscription.status})`);
+            console.log(`Updated premium status for customer ${subscription.customer} (isActive: ${isActive}, status: ${subscription.status})`);
         }
     } catch (error) {
         console.error('Error handling subscription created:', error);
@@ -246,14 +264,23 @@ async function handleSubscriptionUpdated(subscription) {
         console.log('New subscription status:', subscription.status);
         
         // Update premium status based on subscription status
-        const isPremium = ['active', 'trialing'].includes(subscription.status);
+        const isActive = ['active', 'trialing'].includes(subscription.status);
+        const currentPeriodEnd = subscription.current_period_end 
+            ? new Date(subscription.current_period_end * 1000).toISOString() 
+            : null;
         
         // Update subscription status
         const { error: updateError } = await supabase
             .from('user_profiles')
             .update({ 
-                is_premium: isPremium,
-                subscription_status: subscription.status,
+                premium: {
+                    isActive: isActive,
+                    stripeSubscriptionId: subscription.id,
+                    stripeCustomerId: subscription.customer,
+                    status: subscription.status,
+                    currentPeriodEnd: currentPeriodEnd,
+                    updatedAt: new Date().toISOString()
+                },
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_customer_id', subscription.customer);
@@ -261,7 +288,7 @@ async function handleSubscriptionUpdated(subscription) {
         if (updateError) {
             console.error('Error updating subscription status:', updateError);
         } else {
-            console.log(`Updated subscription status for customer ${subscription.customer} (is_premium: ${isPremium}, status: ${subscription.status})`);
+            console.log(`Updated subscription status for customer ${subscription.customer} (isActive: ${isActive}, status: ${subscription.status})`);
         }
     } catch (error) {
         console.error('Error handling subscription updated:', error);
@@ -276,9 +303,14 @@ async function handleSubscriptionDeleted(subscription) {
         const { error: updateError } = await supabase
             .from('user_profiles')
             .update({ 
-                is_premium: false,
-                subscription_id: null,
-                subscription_status: 'canceled',
+                premium: {
+                    isActive: false,
+                    stripeSubscriptionId: subscription.id,
+                    stripeCustomerId: subscription.customer,
+                    status: 'canceled',
+                    canceledAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                },
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_customer_id', subscription.customer);
@@ -299,13 +331,26 @@ async function handlePaymentSucceeded(invoice) {
         
         // Update user's premium status if this is a subscription
         if (invoice.subscription) {
+            // First get the subscription to get full details
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+            const currentPeriodEnd = subscription.current_period_end 
+                ? new Date(subscription.current_period_end * 1000).toISOString() 
+                : null;
+            
             const { error: updateError } = await supabase
                 .from('user_profiles')
                 .update({ 
-                    is_premium: true,
+                    premium: {
+                        isActive: true,
+                        stripeSubscriptionId: subscription.id,
+                        stripeCustomerId: subscription.customer,
+                        status: subscription.status,
+                        currentPeriodEnd: currentPeriodEnd,
+                        updatedAt: new Date().toISOString()
+                    },
                     updated_at: new Date().toISOString()
                 })
-                .eq('subscription_id', invoice.subscription);
+                .eq('stripe_customer_id', subscription.customer);
             
             if (updateError) {
                 console.error('Error updating premium status after payment:', updateError);
@@ -324,13 +369,25 @@ async function handlePaymentFailed(invoice) {
         
         // Handle failed payment - could send notification, update status, etc.
         if (invoice.subscription) {
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+            const currentPeriodEnd = subscription.current_period_end 
+                ? new Date(subscription.current_period_end * 1000).toISOString() 
+                : null;
+            
             const { error: updateError } = await supabase
                 .from('user_profiles')
                 .update({ 
-                    subscription_status: 'past_due',
+                    premium: {
+                        isActive: false, // Set to false on payment failure
+                        stripeSubscriptionId: subscription.id,
+                        stripeCustomerId: subscription.customer,
+                        status: 'past_due',
+                        currentPeriodEnd: currentPeriodEnd,
+                        updatedAt: new Date().toISOString()
+                    },
                     updated_at: new Date().toISOString()
                 })
-                .eq('subscription_id', invoice.subscription);
+                .eq('stripe_customer_id', subscription.customer);
             
             if (updateError) {
                 console.error('Error updating subscription status after failed payment:', updateError);

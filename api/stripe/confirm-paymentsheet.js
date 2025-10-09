@@ -131,7 +131,7 @@ const handler = async (req, res) => {
       customer: subscription.customer
     });
 
-    // Update user premium status - use same fields as webhook for consistency
+    // Update user premium status
     console.log('Updating user premium status for userId:', userId);
     console.log('Subscription details:', {
       id: subscription.id,
@@ -139,19 +139,30 @@ const handler = async (req, res) => {
       customer: paymentIntent.customer
     });
     
+    const currentPeriodEnd = subscription.current_period_end 
+      ? new Date(subscription.current_period_end * 1000).toISOString() 
+      : null;
+    
     const { error: updErr } = await supabase
       .from('user_profiles')
       .update({
-        is_premium: true,
-        subscription_id: subscription.id,
-        subscription_status: subscription.status,
-        stripe_customer_id: paymentIntent.customer,
+        premium: {
+          isActive: true,
+          type: planId,
+          stripeSubscriptionId: subscription.id,
+          stripeCustomerId: paymentIntent.customer,
+          status: subscription.status,
+          currentPeriodEnd: currentPeriodEnd,
+          startedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
 
     if (updErr) {
       console.error('Error updating user premium status:', updErr);
+      console.error('Full error:', JSON.stringify(updErr));
       res.writeHead(500, corsHeaders);
       res.end(JSON.stringify({ error: 'Failed to update user status', details: updErr.message }));
       return;
