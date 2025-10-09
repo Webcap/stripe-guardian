@@ -164,7 +164,7 @@ const handler = async (req, res) => {
     console.log('Subscription details:', {
       id: subscription.id,
       status: subscription.status,
-      customer: paymentIntent.customer
+      customer: customerId
     });
     
     const currentPeriodEnd = subscription.current_period_end 
@@ -178,7 +178,7 @@ const handler = async (req, res) => {
           isActive: true,
           type: planId,
           stripeSubscriptionId: subscription.id,
-          stripeCustomerId: paymentIntent.customer,
+          stripeCustomerId: customerId,
           status: subscription.status,
           currentPeriodEnd: currentPeriodEnd,
           startedAt: new Date().toISOString(),
@@ -206,8 +206,14 @@ const handler = async (req, res) => {
     }));
   } catch (e) {
     console.error('Confirm PaymentSheet error:', e?.message || e);
+    console.error('Full error stack:', e?.stack);
+    console.error('Error details:', JSON.stringify(e, Object.getOwnPropertyNames(e)));
     res.writeHead(500, corsHeaders);
-    res.end(JSON.stringify({ error: 'Failed to confirm payment' }));
+    res.end(JSON.stringify({ 
+      error: 'Failed to confirm payment',
+      details: e?.message || 'Unknown error',
+      type: e?.type || 'unknown'
+    }));
   }
 };
 
