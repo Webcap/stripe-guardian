@@ -97,11 +97,25 @@ const handler = async (req, res) => {
       return;
     }
 
+    // Get the payment method from the successful payment intent
+    const paymentMethod = paymentIntent.payment_method;
+    
+    if (!paymentMethod) {
+      console.error('No payment method found on payment intent');
+      res.writeHead(400, corsHeaders);
+      res.end(JSON.stringify({ error: 'Payment method not found' }));
+      return;
+    }
+    
+    console.log('Creating subscription with payment method:', paymentMethod);
+    
     // Create subscription using the payment method from the payment intent
+    // Use default_payment_method to ensure subscription is active immediately
     const subscription = await stripe.subscriptions.create({
       customer: paymentIntent.customer,
       items: [{ price: plan.stripe_price_id }],
-      payment_behavior: 'default_incomplete',
+      default_payment_method: paymentMethod,
+      payment_behavior: 'error_if_incomplete', // Fail if payment can't be completed
       payment_settings: { save_default_payment_method: 'on_subscription' },
       expand: ['latest_invoice.payment_intent'],
       metadata: { 
@@ -110,23 +124,28 @@ const handler = async (req, res) => {
         source: 'paymentsheet'
       }
     });
+    
+    console.log('Subscription created:', {
+      id: subscription.id,
+      status: subscription.status,
+      customer: subscription.customer
+    });
 
-    // Update user premium status
-    const currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null;
+    // Update user premium status - use same fields as webhook for consistency
+    console.log('Updating user premium status for userId:', userId);
+    console.log('Subscription details:', {
+      id: subscription.id,
+      status: subscription.status,
+      customer: paymentIntent.customer
+    });
     
     const { error: updErr } = await supabase
       .from('user_profiles')
       .update({
-        premium: {
-          isActive: true,
-          type: planId,
-          stripeSubscriptionId: subscription.id,
-          stripeCustomerId: paymentIntent.customer,
-          status: subscription.status,
-          currentPeriodEnd: currentPeriodEnd,
-          startedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
+        is_premium: true,
+        subscription_id: subscription.id,
+        subscription_status: subscription.status,
+        stripe_customer_id: paymentIntent.customer,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
@@ -134,9 +153,11 @@ const handler = async (req, res) => {
     if (updErr) {
       console.error('Error updating user premium status:', updErr);
       res.writeHead(500, corsHeaders);
-      res.end(JSON.stringify({ error: 'Failed to update user status' }));
+      res.end(JSON.stringify({ error: 'Failed to update user status', details: updErr.message }));
       return;
     }
+    
+    console.log('Successfully updated user premium status for userId:', userId);
 
     res.writeHead(200, corsHeaders);
     res.end(JSON.stringify({ 
