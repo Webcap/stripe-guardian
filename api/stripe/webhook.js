@@ -19,6 +19,9 @@ async function handleWebhookEvent(event) {
         console.log('Handling webhook event:', event.type);
         
         switch (event.type) {
+            case 'checkout.session.completed':
+                await handleCheckoutSessionCompleted(event.data.object);
+                break;
             case 'customer.created':
                 await handleCustomerCreated(event.data.object);
                 break;
@@ -46,6 +49,70 @@ async function handleWebhookEvent(event) {
     } catch (error) {
         console.error('Error handling webhook event:', error);
         throw error;
+    }
+}
+
+// Checkout session completed handler
+async function handleCheckoutSessionCompleted(session) {
+    try {
+        console.log(`Checkout session completed: ${session.id} for customer ${session.customer}`);
+        console.log('Session details:', {
+            customer: session.customer,
+            subscription: session.subscription,
+            payment_status: session.payment_status,
+            mode: session.mode
+        });
+        
+        // For subscription mode, get the subscription details
+        if (session.mode === 'subscription' && session.subscription) {
+            console.log(`Fetching subscription details for: ${session.subscription}`);
+            
+            // Retrieve the subscription to get full details
+            const subscription = await stripe.subscriptions.retrieve(session.subscription);
+            
+            console.log('Subscription retrieved:', {
+                id: subscription.id,
+                status: subscription.status,
+                customer: subscription.customer
+            });
+            
+            // Update user's premium status immediately
+            const { error: updateError } = await supabase
+                .from('user_profiles')
+                .update({ 
+                    is_premium: true,
+                    subscription_id: subscription.id,
+                    subscription_status: subscription.status,
+                    stripe_customer_id: session.customer,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('stripe_customer_id', session.customer);
+            
+            if (updateError) {
+                console.error('Error updating premium status after checkout:', updateError);
+            } else {
+                console.log(`Updated premium status for customer ${session.customer} after checkout completion`);
+            }
+        } else if (session.mode === 'payment') {
+            // Handle one-time payment
+            console.log('One-time payment completed');
+            
+            const { error: updateError } = await supabase
+                .from('user_profiles')
+                .update({ 
+                    stripe_customer_id: session.customer,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('stripe_customer_id', session.customer);
+            
+            if (updateError) {
+                console.error('Error updating user after one-time payment:', updateError);
+            } else {
+                console.log(`Updated user ${session.customer} after one-time payment`);
+            }
+        }
+    } catch (error) {
+        console.error('Error handling checkout session completed:', error);
     }
 }
 
@@ -147,12 +214,16 @@ async function handleCustomerUpdated(customer) {
 async function handleSubscriptionCreated(subscription) {
     try {
         console.log(`Subscription created: ${subscription.id} for customer ${subscription.customer}`);
+        console.log('Subscription status:', subscription.status);
+        
+        // Only mark as premium if subscription is active or trialing
+        const isPremium = ['active', 'trialing'].includes(subscription.status);
         
         // Update user's premium status
         const { error: updateError } = await supabase
             .from('user_profiles')
             .update({ 
-                is_premium: true,
+                is_premium: isPremium,
                 subscription_id: subscription.id,
                 subscription_status: subscription.status,
                 updated_at: new Date().toISOString()
@@ -162,7 +233,7 @@ async function handleSubscriptionCreated(subscription) {
         if (updateError) {
             console.error('Error updating premium status:', updateError);
         } else {
-            console.log(`Updated premium status for customer ${subscription.customer}`);
+            console.log(`Updated premium status for customer ${subscription.customer} (is_premium: ${isPremium}, status: ${subscription.status})`);
         }
     } catch (error) {
         console.error('Error handling subscription created:', error);
@@ -172,11 +243,16 @@ async function handleSubscriptionCreated(subscription) {
 async function handleSubscriptionUpdated(subscription) {
     try {
         console.log(`Subscription updated: ${subscription.id} for customer ${subscription.customer}`);
+        console.log('New subscription status:', subscription.status);
+        
+        // Update premium status based on subscription status
+        const isPremium = ['active', 'trialing'].includes(subscription.status);
         
         // Update subscription status
         const { error: updateError } = await supabase
             .from('user_profiles')
             .update({ 
+                is_premium: isPremium,
                 subscription_status: subscription.status,
                 updated_at: new Date().toISOString()
             })
@@ -185,7 +261,7 @@ async function handleSubscriptionUpdated(subscription) {
         if (updateError) {
             console.error('Error updating subscription status:', updateError);
         } else {
-            console.log(`Updated subscription status for customer ${subscription.customer}`);
+            console.log(`Updated subscription status for customer ${subscription.customer} (is_premium: ${isPremium}, status: ${subscription.status})`);
         }
     } catch (error) {
         console.error('Error handling subscription updated:', error);
