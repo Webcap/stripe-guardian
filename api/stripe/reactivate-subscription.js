@@ -89,11 +89,16 @@ module.exports = async (req, res) => {
     // Update the premium object with reactivation info
     const updatedPremium = {
       ...profile.premium,
-      status: 'active',
+      status: subscription.status, // Use actual Stripe status
       cancelAtPeriodEnd: false,
-      canceledAt: undefined,
       currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+      currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+      reactivatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
+    
+    // Remove canceledAt field if it exists
+    delete updatedPremium.canceledAt;
 
     const { error: updateError } = await supabase
       .from('user_profiles')
