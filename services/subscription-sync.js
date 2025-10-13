@@ -24,7 +24,7 @@ class SubscriptionSyncService {
     
     // Configuration
     this.config = {
-      syncIntervalMs: 10 * 60 * 1000, // 10 minutes
+      syncIntervalMs: 60 * 60 * 1000, // 60 minutes (1 hour)
       maxSubscriptionsPerSync: 100,
     };
   }

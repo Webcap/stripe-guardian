@@ -10,13 +10,13 @@ A dedicated service that:
 - ✅ **Syncs active subscriptions** from Stripe to the database
 - ✅ **Checks for expired subscriptions** and deactivates them
 - ✅ **Syncs canceled subscriptions** from Stripe
-- ✅ **Runs automatically** every 10 minutes (configurable)
+- ✅ **Runs automatically** every hour (configurable)
 - ✅ **Verifies with Stripe** before making database changes
 
 ### 2. Automatic Startup
 The subscription sync service starts automatically when the server starts:
 - Runs initial sync immediately on startup
-- Sets up periodic sync every 10 minutes
+- Sets up periodic sync every hour
 - Gracefully stops when server shuts down
 
 ### 3. New API Endpoints
@@ -30,14 +30,14 @@ Returns the current status of the subscription sync service:
     "isRunning": true,
     "lastSyncTime": "2025-10-13T10:00:00.000Z",
     "syncCount": 5,
-    "intervalMinutes": 10
+    "intervalMinutes": 60
   },
   "timestamp": "2025-10-13T10:00:00.000Z"
 }
 ```
 
 #### `POST /api/sync-status`
-Manually triggers a subscription sync (useful for testing or forcing an immediate update):
+Manually triggers a subscription sync (useful for testing or forcing an immediate update between hourly syncs):
 ```bash
 curl -X POST http://localhost:8080/api/sync-status
 ```
@@ -68,7 +68,7 @@ The `/api/ready` endpoint now includes subscription sync status:
     "isRunning": true,
     "lastSyncTime": "2025-10-13T10:00:00.000Z",
     "syncCount": 5,
-    "intervalMinutes": 10
+    "intervalMinutes": 60
   }
 }
 ```
@@ -76,7 +76,7 @@ The `/api/ready` endpoint now includes subscription sync status:
 ## How It Works
 
 ### Sync Process
-Every 10 minutes, the service performs three checks:
+Every hour, the service performs three checks:
 
 #### 1. Sync Active Subscriptions
 - Fetches active subscriptions from Stripe
@@ -113,15 +113,15 @@ You can customize sync intervals by modifying `services/subscription-sync.js`:
 
 ```javascript
 this.config = {
-  syncIntervalMs: 10 * 60 * 1000, // 10 minutes (default)
+  syncIntervalMs: 60 * 60 * 1000, // 60 minutes (1 hour) - default
   maxSubscriptionsPerSync: 100,
 };
 ```
 
 ### Recommended Intervals
-- **Development**: 5 minutes (300,000 ms)
-- **Production**: 10 minutes (600,000 ms) - default
-- **High Volume**: 15-30 minutes (900,000-1,800,000 ms)
+- **Development**: 10-15 minutes (600,000-900,000 ms)
+- **Production**: 60 minutes (3,600,000 ms) - default (1 hour)
+- **High Volume**: 2-4 hours (7,200,000-14,400,000 ms)
 
 ## Testing the Sync
 
@@ -200,7 +200,7 @@ curl http://your-domain.com/api/ready
 ### Alerting
 Monitor these conditions:
 1. `subscriptionSync.isRunning` should be `true`
-2. `subscriptionSync.lastSyncTime` should be within the last 15 minutes
+2. `subscriptionSync.lastSyncTime` should be within the last 90 minutes
 3. Watch logs for repeated sync failures
 
 ### Troubleshooting
@@ -242,7 +242,7 @@ Potential improvements for the future:
 ## Summary
 
 The Stripe Guardian server now handles subscription syncing automatically with:
-- ✅ **10-minute automatic sync** of all subscription statuses
+- ✅ **Hourly automatic sync** of all subscription statuses
 - ✅ **Immediate startup** sync when server starts
 - ✅ **API endpoints** for status and manual triggers
 - ✅ **Detailed logging** for monitoring
