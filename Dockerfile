@@ -15,6 +15,7 @@ RUN npm ci --only=production --legacy-peer-deps && \
 
 # Copy application code
 COPY api/ ./api/
+COPY services/ ./services/
 COPY server.js ./
 
 # Create logs directory
