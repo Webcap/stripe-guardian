@@ -51,6 +51,9 @@ const server = http.createServer(async (req, res) => {
       const url = req.url || '/';
       console.log(`${req.method} ${url}`);
 
+      // Store raw body (needed for webhook signature verification)
+      req.rawBody = body;
+      
       // Parse body if present
       if (body) {
         try {

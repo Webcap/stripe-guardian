@@ -1,6 +1,6 @@
-// Vercel API route for Stripe webhooks
-import { createClient } from '@supabase/supabase-js';
-import Stripe from 'stripe';
+// Stripe webhook handler for Stripe Guardian
+const { createClient } = require('@supabase/supabase-js');
+const Stripe = require('stripe');
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -448,7 +448,7 @@ async function handlePaymentFailed(invoice) {
     }
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
     // Set CORS headers - allow both production and development origins
     const allowedOrigins = [
         'https://stripe.webcap.media',
@@ -472,37 +472,43 @@ export default async function handler(req, res) {
     
     // Handle preflight request
     if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+        res.writeHead(200);
+        res.end();
+        return;
     }
     
     // Only allow POST requests
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+        return;
     }
     
     try {
         const signature = req.headers['stripe-signature'];
         if (!signature) {
-            return res.status(400).json({ error: 'Missing Stripe-Signature header' });
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Missing Stripe-Signature header' }));
+            return;
         }
         
-        // Get the raw body from the request
-        let rawBody = '';
-        req.on('data', (chunk) => {
-            rawBody += chunk.toString();
-        });
+        // Get the raw body from req.rawBody (already read by server.js)
+        // We need the raw unparsed body for webhook signature verification
+        const rawBody = req.rawBody || req.body;
         
-        return new Promise((resolve) => {
-            req.on('end', async () => {
-                if (!rawBody) {
-                    return resolve(res.status(400).json({ error: 'No request body' }));
-                }
+        if (!rawBody) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'No request body' }));
+            return;
+        }
         
         // Verify webhook signature
         const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
         if (!webhookSecret) {
             console.error('Webhook secret is required for signature verification');
-            return res.status(500).json({ error: 'Webhook configuration error' });
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Webhook configuration error' }));
+            return;
         }
         
         let event;
@@ -510,26 +516,24 @@ export default async function handler(req, res) {
             event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
         } catch (err) {
             console.error('Webhook signature verification failed:', err.message);
-            return res.status(400).json({ error: 'Invalid signature' });
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid signature' }));
+            return;
         }
         
         // Handle the webhook event
         await handleWebhookEvent(event);
         
-                // Return success
-                resolve(res.status(200).json({ received: true }));
-            });
-        });
+        // Return success
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ received: true }));
         
     } catch (error) {
         console.error('Webhook handling error:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        
+        if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Internal Server Error' }));
+        }
     }
-}
-
-// Configure body parsing for raw data (needed for webhook signature verification)
-export const config = {
-    api: {
-        bodyParser: false,
-    },
 };
