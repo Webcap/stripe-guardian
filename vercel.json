@@ -44,6 +44,14 @@
       "dest": "/api/stripe/confirm-paymentsheet.js"
     },
     {
+      "src": "/api/stripe/cancel-subscription",
+      "dest": "/api/stripe/cancel-subscription.js"
+    },
+    {
+      "src": "/api/stripe/reactivate-subscription",
+      "dest": "/api/stripe/reactivate-subscription.js"
+    },
+    {
       "src": "/api/health",
       "dest": "/api/health.js"
     },
