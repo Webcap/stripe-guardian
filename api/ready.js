@@ -26,8 +26,12 @@ module.exports = async (req, res) => {
 
   // Convert uptime to hours and minutes format
   const totalSeconds = process.uptime();
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  console.log('Total seconds:', totalSeconds); // Debug log
+  
+  // Ensure we have a valid number
+  const seconds = isNaN(totalSeconds) ? 0 : Math.floor(totalSeconds);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
   const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
   const readiness = { 
