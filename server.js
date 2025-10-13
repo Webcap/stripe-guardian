@@ -6,6 +6,7 @@
  */
 
 const http = require('http');
+const subscriptionSync = require('./services/subscription-sync');
 const PORT = process.env.PORT || process.env.APPLICATION_PORT || 8080;
 
 // Route mapping for API endpoints
@@ -14,6 +15,7 @@ const routes = {
   '/api': './api/index.js',
   '/api/health': './api/health.js',
   '/api/ready': './api/ready.js',
+  '/api/sync-status': './api/sync-status.js',
   '/api/test': './api/test.js',
   '/api/webhook': './api/webhook.js',
   '/api/stripe/webhook': './api/stripe/webhook.js',
@@ -93,11 +95,23 @@ server.listen(PORT, () => {
   console.log(`🚀 Stripe Guardian API Server running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
   console.log(`📍 Ready check: http://localhost:${PORT}/api/ready`);
+  
+  // Start automatic subscription sync
+  if (process.env.STRIPE_SECRET_KEY && process.env.SUPABASE_URL) {
+    try {
+      subscriptionSync.start();
+    } catch (error) {
+      console.error('⚠️  Failed to start subscription sync:', error.message);
+    }
+  } else {
+    console.warn('⚠️  Subscription sync disabled: Missing required environment variables');
+  }
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM signal received: closing HTTP server');
+  subscriptionSync.stop();
   server.close(() => {
     console.log('HTTP server closed');
     process.exit(0);
@@ -106,6 +120,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('SIGINT signal received: closing HTTP server');
+  subscriptionSync.stop();
   server.close(() => {
     console.log('HTTP server closed');
     process.exit(0);

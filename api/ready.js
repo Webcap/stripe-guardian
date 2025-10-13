@@ -5,6 +5,7 @@
 
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
+const subscriptionSync = require('../services/subscription-sync');
 
 module.exports = async (req, res) => {
   // Handle CORS
@@ -87,6 +88,14 @@ module.exports = async (req, res) => {
     readiness.checks.supabase = false;
     readiness.errors = readiness.errors || [];
     readiness.errors.push(`Supabase: ${e.message}`);
+  }
+  
+  // Add subscription sync status
+  try {
+    const syncStatus = subscriptionSync.getStatus();
+    readiness.subscriptionSync = syncStatus;
+  } catch (e) {
+    readiness.subscriptionSync = { error: e.message };
   }
   
   res.writeHead(readiness.ok ? 200 : 503, { 'Content-Type': 'application/json' });

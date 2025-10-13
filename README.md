@@ -13,6 +13,14 @@ Stripe Guardian is an intelligent monitoring system that:
 
 ## ✨ Key Features
 
+### 🔄 Automatic Subscription Sync
+- **Built-in automatic sync** every 10 minutes - no separate process needed
+- Syncs active subscriptions from Stripe to database
+- Detects and deactivates expired subscriptions
+- Handles canceled subscriptions automatically
+- Manual sync trigger via API endpoint
+- Real-time status monitoring at `/api/sync-status`
+
 ### 🔄 Automatic Synchronization
 - Continuous monitoring of Stripe-Supabase data consistency
 - Automatic detection and resolution of sync issues
@@ -27,6 +35,7 @@ Stripe Guardian is an intelligent monitoring system that:
 - Built-in health checks for webhook server
 - Automatic restart of failed services
 - Comprehensive logging and error tracking
+- Subscription sync status in ready checks
 
 ### 🚀 Production Ready
 - Local development with npm scripts
@@ -193,13 +202,21 @@ const CONFIG = {
 
 ## 📊 Monitoring
 
+### API Endpoints
+- **Health Check**: `GET /api/health` - Basic health status
+- **Ready Check**: `GET /api/ready` - Detailed readiness with sync status
+- **Sync Status**: `GET /api/sync-status` - Subscription sync information
+- **Manual Sync**: `POST /api/sync-status` - Trigger immediate sync
+
 ### Health Checks
 - **Webhook Server**: `GET /health` and `GET /ready`
 - **Guardian Status**: Continuous monitoring with auto-fix
+- **Subscription Sync**: Automatic every 10 minutes
 
 ### Logging
 - **File Logs**: Daily log files in `logs/` directory
 - **Console Output**: Real-time logging to console
+- **Sync Logs**: Detailed sync operations and results
 
 ### Grafana Dashboard
 Access monitoring dashboard at `http://localhost:3000`:
