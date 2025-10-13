@@ -24,22 +24,23 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // Get uptime in minutes
-  let uptimeMinutes = 'Unknown';
+  // Get uptime in seconds (admin dashboard expects seconds)
+  let uptimeSeconds = 0;
   try {
     const totalSeconds = process.uptime && process.uptime();
     if (totalSeconds && !isNaN(totalSeconds) && totalSeconds > 0) {
-      uptimeMinutes = Math.round(totalSeconds / 60);
+      uptimeSeconds = Math.floor(totalSeconds);
     }
   } catch (error) {
     console.log('Error getting uptime:', error);
+    uptimeSeconds = 0;
   }
 
   const readiness = { 
     ok: true, 
     timestamp: new Date().toISOString(),
     service: 'Stripe Guardian',
-    uptime: uptimeMinutes,
+    uptime: uptimeSeconds,
     checks: {} 
   };
   
