@@ -1,23 +1,41 @@
+# Dependencies
 node_modules
 npm-debug.log
+
+# Git
 .git
 .gitignore
+
+# Environment
 .env
 .env.*
+!.env.example
+
+# Logs
 logs
 *.log
+
+# Documentation
 README.md
+*.md
+!SPACESHIP_HYPERLIFT_DEPLOYMENT.md
+
+# IDE
 .vscode
 .idea
-*.md
 .DS_Store
-.dockerignore
+
+# Deployment configs for other platforms
 docker-compose.yml
-Dockerfile
 render.yaml
 vercel.json
 VERCEL_DEPLOYMENT.md
 RENDER_DEPLOYMENT.md
-DOUBLE_CHARGE_FIX.md
-MOBILE_PAYMENT_FIX.md
+
+# Health reports
 stripe-health-report-*.json
+
+# Directories not needed for production
+scripts
+server
+public
