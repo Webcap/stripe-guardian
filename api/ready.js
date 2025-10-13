@@ -6,18 +6,22 @@
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Handle CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.writeHead(200);
+    res.end();
+    return;
   }
 
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
   }
 
   const readiness = { 
@@ -72,5 +76,6 @@ export default async function handler(req, res) {
     readiness.errors.push(`Supabase: ${e.message}`);
   }
   
-  return res.status(readiness.ok ? 200 : 503).json(readiness);
-}
+  res.writeHead(readiness.ok ? 200 : 503, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(readiness));
+};

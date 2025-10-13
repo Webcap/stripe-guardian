@@ -175,7 +175,7 @@ async function handlePaymentFailed(invoice) {
   }
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Handle CORS properly
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -183,16 +183,20 @@ export default async function handler(req, res) {
   
   // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.writeHead(200);
+    res.end();
+    return;
   }
 
   // Health check endpoint
   if (req.method === 'GET' && (req.url === '/health' || req.url === '/api/health')) {
-    return res.status(200).json({ 
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
       ok: true, 
       timestamp: new Date().toISOString(),
       service: 'Stripe Guardian Webhook'
-    });
+    }));
+    return;
   }
   
   // Ready check endpoint
@@ -246,7 +250,9 @@ export default async function handler(req, res) {
       readiness.errors.push(`Main App Supabase: ${e.message}`);
     }
     
-    return res.status(readiness.ok ? 200 : 503).json(readiness);
+    res.writeHead(readiness.ok ? 200 : 503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(readiness));
+    return;
   }
 
   // Handle webhook POST requests
@@ -254,7 +260,9 @@ export default async function handler(req, res) {
     try {
       const signature = req.headers['stripe-signature'];
       if (!signature || typeof signature !== 'string') {
-        return res.status(400).json({ error: 'Missing Stripe-Signature header' });
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing Stripe-Signature header' }));
+        return;
       }
 
       const rawBody = req.body;
@@ -283,27 +291,32 @@ export default async function handler(req, res) {
           console.log(`Unhandled webhook event type: ${event.type}`);
       }
       
-      return res.status(200).json({ 
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
         received: true, 
         event_type: event.type,
         processed: true,
         timestamp: new Date().toISOString()
-      });
+      }));
+      return;
     } catch (err) {
       console.error('Webhook handling error:', err?.message || err);
-      return res.status(400).json({ 
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
         error: 'Webhook Error',
         message: err.message,
         timestamp: new Date().toISOString()
-      });
+      }));
+      return;
     }
   }
 
   // Method not allowed
-  return res.status(405).json({ 
+  res.writeHead(405, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ 
     error: 'Method not allowed',
     allowed_methods: ['GET', 'POST', 'OPTIONS'],
     timestamp: new Date().toISOString()
-  });
-}
+  }));
+};
 
