@@ -28,6 +28,7 @@ module.exports = async (req, res) => {
     ok: true, 
     timestamp: new Date().toISOString(),
     service: 'Stripe Guardian',
+    uptime: process.uptime(),
     checks: {} 
   };
   
