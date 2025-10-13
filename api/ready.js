@@ -24,21 +24,22 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // Convert uptime to hours and minutes format
-  const totalSeconds = process.uptime();
-  console.log('Total seconds:', totalSeconds); // Debug log
-  
-  // Ensure we have a valid number
-  const seconds = isNaN(totalSeconds) ? 0 : Math.floor(totalSeconds);
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  // Get uptime in minutes
+  let uptimeMinutes = 'Unknown';
+  try {
+    const totalSeconds = process.uptime && process.uptime();
+    if (totalSeconds && !isNaN(totalSeconds) && totalSeconds > 0) {
+      uptimeMinutes = Math.round(totalSeconds / 60);
+    }
+  } catch (error) {
+    console.log('Error getting uptime:', error);
+  }
 
   const readiness = { 
     ok: true, 
     timestamp: new Date().toISOString(),
     service: 'Stripe Guardian',
-    uptime: uptimeString,
+    uptime: uptimeMinutes,
     checks: {} 
   };
   
