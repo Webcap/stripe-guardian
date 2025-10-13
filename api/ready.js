@@ -24,11 +24,17 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // Convert uptime to hours and minutes format
+  const totalSeconds = process.uptime();
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const uptimeString = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
   const readiness = { 
     ok: true, 
     timestamp: new Date().toISOString(),
     service: 'Stripe Guardian',
-    uptime: process.uptime(),
+    uptime: uptimeString,
     checks: {} 
   };
   
