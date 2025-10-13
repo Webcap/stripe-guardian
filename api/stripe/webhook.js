@@ -279,6 +279,15 @@ async function handleSubscriptionUpdated(subscription) {
         console.log(`Subscription updated: ${subscription.id} for customer ${subscription.customer}`);
         console.log('New subscription status:', subscription.status);
         
+        // First, get the existing premium data to preserve fields
+        const { data: existingProfile } = await supabase
+            .from('user_profiles')
+            .select('premium')
+            .eq('stripe_customer_id', subscription.customer)
+            .single();
+        
+        const existingPremium = existingProfile?.premium || {};
+        
         // Update premium status based on subscription status
         const isActive = ['active', 'trialing'].includes(subscription.status);
         const currentPeriodEnd = subscription.current_period_end 
@@ -291,20 +300,31 @@ async function handleSubscriptionUpdated(subscription) {
         // Extract planId from subscription metadata
         const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
         
+        // Build updated premium object, preserving existing fields
+        const updatedPremium = {
+            ...existingPremium, // Preserve all existing fields
+            isActive: isActive,
+            planId: planId,
+            type: planId, // Keep for backwards compatibility
+            stripeSubscriptionId: subscription.id,
+            stripeCustomerId: subscription.customer,
+            status: subscription.status,
+            currentPeriodEnd: currentPeriodEnd,
+            currentPeriodStart: currentPeriodStart,
+            cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+            updatedAt: new Date().toISOString()
+        };
+        
+        // Add canceledAt if subscription was canceled
+        if (subscription.canceled_at) {
+            updatedPremium.canceledAt = new Date(subscription.canceled_at * 1000).toISOString();
+        }
+        
         // Update subscription status
         const { error: updateError } = await supabase
             .from('user_profiles')
             .update({ 
-                premium: {
-                    isActive: isActive,
-                    planId: planId,
-                    stripeSubscriptionId: subscription.id,
-                    stripeCustomerId: subscription.customer,
-                    status: subscription.status,
-                    currentPeriodEnd: currentPeriodEnd,
-                    currentPeriodStart: currentPeriodStart,
-                    updatedAt: new Date().toISOString()
-                },
+                premium: updatedPremium,
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_customer_id', subscription.customer);
@@ -323,26 +343,40 @@ async function handleSubscriptionDeleted(subscription) {
     try {
         console.log(`Subscription deleted: ${subscription.id} for customer ${subscription.customer}`);
         
+        // Get existing premium data to preserve fields
+        const { data: existingProfile } = await supabase
+            .from('user_profiles')
+            .select('premium')
+            .eq('stripe_customer_id', subscription.customer)
+            .single();
+        
+        const existingPremium = existingProfile?.premium || {};
+        
         // Extract planId from subscription metadata
         const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
         const currentPeriodEnd = subscription.current_period_end 
             ? new Date(subscription.current_period_end * 1000).toISOString() 
             : null;
         
+        // Build updated premium object, preserving existing fields
+        const updatedPremium = {
+            ...existingPremium, // Preserve all existing fields
+            isActive: false,
+            planId: planId,
+            type: planId, // Keep for backwards compatibility
+            stripeSubscriptionId: subscription.id,
+            stripeCustomerId: subscription.customer,
+            status: 'canceled',
+            currentPeriodEnd: currentPeriodEnd,
+            canceledAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        
         // Remove premium status
         const { error: updateError } = await supabase
             .from('user_profiles')
             .update({ 
-                premium: {
-                    isActive: false,
-                    planId: planId,
-                    stripeSubscriptionId: subscription.id,
-                    stripeCustomerId: subscription.customer,
-                    status: 'canceled',
-                    currentPeriodEnd: currentPeriodEnd,
-                    canceledAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                },
+                premium: updatedPremium,
                 updated_at: new Date().toISOString()
             })
             .eq('stripe_customer_id', subscription.customer);
@@ -365,6 +399,16 @@ async function handlePaymentSucceeded(invoice) {
         if (invoice.subscription) {
             // First get the subscription to get full details
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+            
+            // Get existing premium data to preserve fields
+            const { data: existingProfile } = await supabase
+                .from('user_profiles')
+                .select('premium')
+                .eq('stripe_customer_id', subscription.customer)
+                .single();
+            
+            const existingPremium = existingProfile?.premium || {};
+            
             const currentPeriodEnd = subscription.current_period_end 
                 ? new Date(subscription.current_period_end * 1000).toISOString() 
                 : null;
@@ -375,19 +419,26 @@ async function handlePaymentSucceeded(invoice) {
             // Extract planId from subscription metadata
             const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
             
+            // Build updated premium object, preserving existing fields
+            const updatedPremium = {
+                ...existingPremium, // Preserve all existing fields
+                isActive: true,
+                planId: planId,
+                type: planId, // Keep for backwards compatibility
+                stripeSubscriptionId: subscription.id,
+                stripeCustomerId: subscription.customer,
+                status: subscription.status,
+                currentPeriodEnd: currentPeriodEnd,
+                currentPeriodStart: currentPeriodStart,
+                cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+                renewedAt: new Date().toISOString(), // Mark when subscription was renewed
+                updatedAt: new Date().toISOString()
+            };
+            
             const { error: updateError } = await supabase
                 .from('user_profiles')
                 .update({ 
-                    premium: {
-                        isActive: true,
-                        planId: planId,
-                        stripeSubscriptionId: subscription.id,
-                        stripeCustomerId: subscription.customer,
-                        status: subscription.status,
-                        currentPeriodEnd: currentPeriodEnd,
-                        currentPeriodStart: currentPeriodStart,
-                        updatedAt: new Date().toISOString()
-                    },
+                    premium: updatedPremium,
                     updated_at: new Date().toISOString()
                 })
                 .eq('stripe_customer_id', subscription.customer);
@@ -410,6 +461,16 @@ async function handlePaymentFailed(invoice) {
         // Handle failed payment - could send notification, update status, etc.
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+            
+            // Get existing premium data to preserve fields
+            const { data: existingProfile } = await supabase
+                .from('user_profiles')
+                .select('premium')
+                .eq('stripe_customer_id', subscription.customer)
+                .single();
+            
+            const existingPremium = existingProfile?.premium || {};
+            
             const currentPeriodEnd = subscription.current_period_end 
                 ? new Date(subscription.current_period_end * 1000).toISOString() 
                 : null;
@@ -420,19 +481,24 @@ async function handlePaymentFailed(invoice) {
             // Extract planId from subscription metadata
             const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
             
+            // Build updated premium object, preserving existing fields
+            const updatedPremium = {
+                ...existingPremium, // Preserve all existing fields
+                isActive: false, // Set to false on payment failure
+                planId: planId,
+                type: planId, // Keep for backwards compatibility
+                stripeSubscriptionId: subscription.id,
+                stripeCustomerId: subscription.customer,
+                status: 'past_due',
+                currentPeriodEnd: currentPeriodEnd,
+                currentPeriodStart: currentPeriodStart,
+                updatedAt: new Date().toISOString()
+            };
+            
             const { error: updateError } = await supabase
                 .from('user_profiles')
                 .update({ 
-                    premium: {
-                        isActive: false, // Set to false on payment failure
-                        planId: planId,
-                        stripeSubscriptionId: subscription.id,
-                        stripeCustomerId: subscription.customer,
-                        status: 'past_due',
-                        currentPeriodEnd: currentPeriodEnd,
-                        currentPeriodStart: currentPeriodStart,
-                        updatedAt: new Date().toISOString()
-                    },
+                    premium: updatedPremium,
                     updated_at: new Date().toISOString()
                 })
                 .eq('stripe_customer_id', subscription.customer);
