@@ -6,13 +6,21 @@
 const subscriptionSync = require('../services/subscription-sync');
 
 module.exports = async (req, res) => {
-  // Handle CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Handle CORS - set on all responses
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Accept',
+    'Access-Control-Max-Age': '86400' // 24 hours
+  };
+  
+  // Set CORS headers
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
   
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
+    res.writeHead(200, corsHeaders);
     res.end();
     return;
   }
@@ -22,14 +30,20 @@ module.exports = async (req, res) => {
     try {
       const status = subscriptionSync.getStatus();
       
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      });
       res.end(JSON.stringify({
         ok: true,
         sync: status,
         timestamp: new Date().toISOString()
       }));
     } catch (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      });
       res.end(JSON.stringify({ 
         ok: false,
         error: error.message 
@@ -48,14 +62,20 @@ module.exports = async (req, res) => {
         console.error('Manual sync error:', err);
       });
       
-      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.writeHead(202, { 
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      });
       res.end(JSON.stringify({ 
         ok: true,
         message: 'Sync triggered',
         timestamp: new Date().toISOString()
       }));
     } catch (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      });
       res.end(JSON.stringify({ 
         ok: false,
         error: error.message 
@@ -65,7 +85,10 @@ module.exports = async (req, res) => {
   }
 
   // Method not allowed
-  res.writeHead(405, { 'Content-Type': 'application/json' });
+  res.writeHead(405, { 
+    'Content-Type': 'application/json',
+    ...corsHeaders
+  });
   res.end(JSON.stringify({ error: 'Method not allowed' }));
 };
 
