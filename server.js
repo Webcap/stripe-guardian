@@ -6,7 +6,7 @@
  */
 
 const http = require('http');
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || process.env.APPLICATION_PORT || 8080;
 
 // Route mapping for API endpoints
 const routes = {
