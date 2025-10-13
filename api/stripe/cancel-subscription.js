@@ -87,12 +87,15 @@ module.exports = async (req, res) => {
     }
 
     // Update the premium object with cancellation info
+    // Note: When canceled at period end, Stripe keeps status as 'active' until period ends
     const updatedPremium = {
       ...profile.premium,
-      status: 'canceled',
+      status: subscription.status, // Keep the actual Stripe status (usually 'active')
       cancelAtPeriodEnd: true,
-      canceledAt: new Date(subscription.canceled_at * 1000).toISOString(),
+      canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : new Date().toISOString(),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+      currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     const { error: updateError } = await supabase
