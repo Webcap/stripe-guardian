@@ -7,10 +7,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2025-07-30.basil'
 });
 
-// Initialize Supabase
+// Initialize Supabase with new secret key support
 const supabase = createClient(
     process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+        }
+    }
 );
 
 // Handle webhook events
