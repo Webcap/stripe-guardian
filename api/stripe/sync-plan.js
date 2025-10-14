@@ -1,15 +1,13 @@
 const Stripe = require('stripe');
-const { createClient } = require('@supabase/supabase-js');
+const { supabaseAdmin } = require('../../server/lib/supabase-admin');
 
-// Initialize Stripe and Supabase clients
+// Initialize Stripe client
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { 
   apiVersion: '2024-06-20' 
 });
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+// Use shared Supabase admin client (supports both secret key formats)
+const supabase = supabaseAdmin;
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
