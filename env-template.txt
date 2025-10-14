@@ -4,8 +4,14 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
 # Local Supabase Configuration (for stripe-guardian's own data)
 SUPABASE_URL=https://your-project.supabase.co
+# NEW: Use sb_secret_... format (recommended)
+SUPABASE_SECRET_KEY=sb_secret_your_secret_key_here
+# LEGACY: JWT-based service_role key (still supported but deprecated)
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
 # Main App Supabase Configuration (for updating user_profiles)
 WIZNOTE_SUPABASE_URL=https://your-main-app-project.supabase.co
+# NEW: Use sb_secret_... format (recommended)
+WIZNOTE_SUPABASE_SECRET_KEY=sb_secret_your_wiznote_secret_key_here
+# LEGACY: JWT-based service_role key (still supported but deprecated)
 WIZNOTE_SUPABASE_SERVICE_KEY=your-main-app-supabase-service-role-key
