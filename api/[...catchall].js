@@ -55,6 +55,9 @@ module.exports = async (req, res) => {
         '/api/stripe/create-customer',
         '/api/stripe/create-paymentsheet',
         '/api/stripe/confirm-paymentsheet',
+        '/api/stripe/get-billing-history',
+        '/api/stripe/cancel-subscription',
+        '/api/stripe/reactivate-subscription',
         '/api/health',
         '/api/ready',
         '/api/test'
