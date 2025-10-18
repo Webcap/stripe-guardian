@@ -59,6 +59,7 @@ module.exports = async (req, res) => {
     STRIPE_WEBHOOK_SECRET: !!process.env.STRIPE_WEBHOOK_SECRET,
     WIZNOTE_SUPABASE_URL: !!process.env.WIZNOTE_SUPABASE_URL,
     WIZNOTE_SUPABASE_SECRET_KEY: !!(process.env.WIZNOTE_SUPABASE_SECRET_KEY || process.env.WIZNOTE_SUPABASE_SERVICE_KEY),
+    SUPABASE_SERVICE_ROLE_KEY: !!(process.env.WIZNOTE_SUPABASE_SECRET_KEY || process.env.WIZNOTE_SUPABASE_SERVICE_KEY),
   };
   
   // Check Stripe connection
