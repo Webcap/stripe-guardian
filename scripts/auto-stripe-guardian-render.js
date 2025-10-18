@@ -1,8 +1,8 @@
 /**
- * 🚀 Stripe Guardian - Render Production Version
+ * 🚀 Stripe Guardian - Render Development Version
  * Optimized for Render deployment with better error handling and monitoring
  */
-const { createClient } = require('@supabase/supabase-js');
+const { wiznoteAdmin } = require('../server/lib/supabase-admin');
 const Stripe = require('stripe');
 const http = require('http');
 const fs = require('fs');
@@ -20,8 +20,7 @@ if (process.env.NODE_ENV !== 'production') {
 // Validate required environment variables
 const requiredEnvVars = [
   'STRIPE_SECRET_KEY',
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY'
+  'WIZNOTE_SUPABASE_URL'
 ];
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -32,10 +31,7 @@ if (missingVars.length > 0) {
 }
 
 // Initialize clients
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = wiznoteAdmin;
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20'
@@ -102,8 +98,8 @@ const server = http.createServer((req, res) => {
       environment: {
         nodeEnv: process.env.NODE_ENV,
         hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-        hasSupabaseUrl: !!process.env.SUPABASE_URL,
-        hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+        hasWiznoteSupabaseUrl: !!process.env.WIZNOTE_SUPABASE_URL,
+        hasWiznoteSupabaseKey: !!(process.env.WIZNOTE_SUPABASE_SECRET_KEY || process.env.WIZNOTE_SUPABASE_SERVICE_KEY),
         port: CONFIG.port
       }
     };
