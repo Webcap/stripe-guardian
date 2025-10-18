@@ -4,7 +4,7 @@
  */
 
 const Stripe = require('stripe');
-const { createClient } = require('@supabase/supabase-js');
+const { wiznoteAdmin } = require('../server/lib/supabase-admin');
 
 class SubscriptionSyncService {
   constructor() {
@@ -12,10 +12,8 @@ class SubscriptionSyncService {
       apiVersion: '2024-06-20'
     });
     
-    this.supabase = createClient(
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    );
+    // Use wiznoteAdmin for accessing user_profiles
+    this.supabase = wiznoteAdmin;
     
     this.syncInterval = null;
     this.isRunning = false;

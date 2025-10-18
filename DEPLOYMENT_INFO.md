@@ -7,8 +7,9 @@
 
 ## Current Status
 
-✅ **API Keys**: Using **NEW format** (not legacy)  
-✅ **Deployment**: Auto-deploys from `main` branch
+✅ **API Keys**: Using **NEW format** (`sb_secret_...` - NOT legacy `eyJ...`)  
+✅ **Deployment**: Auto-deploys from `main` branch on Starlight Hyperlift  
+✅ **Database**: All endpoints correctly use Wiznote Supabase via `wiznoteAdmin`
 
 ## Environment Variables
 
