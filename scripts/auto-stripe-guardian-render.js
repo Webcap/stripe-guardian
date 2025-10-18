@@ -108,10 +108,21 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify(healthStatus, null, 2));
   } else if (req.url === '/ready') {
     const readiness = {
+      ok: true,
       status: 'ready',
       timestamp: new Date().toISOString(),
       guardian: isRunning,
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      checks: {
+        database: !!process.env.WIZNOTE_SUPABASE_URL,
+        stripe: !!process.env.STRIPE_SECRET_KEY,
+        env: {
+          SUPABASE_URL: !!process.env.WIZNOTE_SUPABASE_URL,
+          SUPABASE_SERVICE_ROLE_KEY: !!(process.env.WIZNOTE_SUPABASE_SECRET_KEY || process.env.WIZNOTE_SUPABASE_SERVICE_KEY),
+          STRIPE_SECRET_KEY: !!process.env.STRIPE_SECRET_KEY,
+          STRIPE_WEBHOOK_SECRET: !!process.env.STRIPE_WEBHOOK_SECRET
+        }
+      }
     };
     
     res.writeHead(200);
