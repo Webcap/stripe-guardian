@@ -1,5 +1,5 @@
 // Stripe webhook handler for Stripe Guardian
-const { createClient } = require('@supabase/supabase-js');
+const { wiznoteAdmin } = require('../../server/lib/supabase-admin');
 const Stripe = require('stripe');
 
 // Initialize Stripe
@@ -7,17 +7,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2025-07-30.basil'
 });
 
-// Initialize Supabase with new secret key support
-const supabase = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-        }
-    }
-);
+// Use wiznoteAdmin as supabase client for accessing user_profiles
+const supabase = wiznoteAdmin;
 
 // Handle webhook events
 async function handleWebhookEvent(event) {

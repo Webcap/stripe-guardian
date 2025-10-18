@@ -1,22 +1,13 @@
 const Stripe = require('stripe');
-const { createClient } = require('@supabase/supabase-js');
+const { wiznoteAdmin } = require('../../server/lib/supabase-admin');
 
 // Initialize Stripe client
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { 
   apiVersion: '2024-06-20' 
 });
 
-// Initialize Supabase admin client with new secret key support
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    }
-  }
-);
+// Use wiznoteAdmin as supabase client for accessing premium_plans
+const supabase = wiznoteAdmin;
 
 // CORS headers for cross-origin requests
 const corsHeaders = {

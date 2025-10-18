@@ -1,29 +1,28 @@
 const Stripe = require('stripe');
-const { createClient } = require('@supabase/supabase-js');
+const { wiznoteAdmin } = require('../../server/lib/supabase-admin');
 
-// Initialize Stripe and Supabase clients
-let stripe, supabase;
+// Initialize Stripe client
+let stripe;
 
 try {
   console.log('Environment variables check:');
   console.log('STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
-  console.log('SUPABASE_URL exists:', !!process.env.SUPABASE_URL);
-  console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  console.log('WIZNOTE_SUPABASE_URL exists:', !!process.env.WIZNOTE_SUPABASE_URL);
+  console.log('WIZNOTE_SUPABASE_SECRET_KEY exists:', !!process.env.WIZNOTE_SUPABASE_SECRET_KEY);
+  console.log('WIZNOTE_SUPABASE_SERVICE_KEY exists:', !!process.env.WIZNOTE_SUPABASE_SERVICE_KEY);
   
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { 
     apiVersion: '2024-06-20' 
   });
   console.log('Stripe client initialized successfully');
-  
-  supabase = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  );
-  console.log('Supabase client initialized successfully');
+  console.log('Wiznote Supabase client initialized from supabase-admin module');
 } catch (initError) {
   console.error('Error initializing clients:', initError);
   // We'll handle this in the main function
 }
+
+// Use wiznoteAdmin as supabase client for accessing user_profiles
+const supabase = wiznoteAdmin;
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -54,9 +53,9 @@ const handler = async (req, res) => {
   }
 
   try {
-    // Check if clients are properly initialized
-    if (!stripe || !supabase) {
-      console.error('Clients not initialized properly');
+    // Check if Stripe is properly initialized
+    if (!stripe) {
+      console.error('Stripe client not initialized properly');
       res.writeHead(500, corsHeaders);
       res.end(JSON.stringify({ 
         error: 'Service not properly initialized',

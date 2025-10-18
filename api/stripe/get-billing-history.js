@@ -1,5 +1,5 @@
 // Get billing history for a customer
-const { createClient } = require('@supabase/supabase-js');
+const { wiznoteAdmin } = require('../../server/lib/supabase-admin');
 const Stripe = require('stripe');
 
 // Initialize Stripe
@@ -7,11 +7,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2025-07-30.basil'
 });
 
-// Initialize Supabase
-const supabase = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+// Use wiznoteAdmin as supabase client for accessing user_profiles
+const supabase = wiznoteAdmin;
 
 module.exports = async (req, res) => {
     // Set CORS headers

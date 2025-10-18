@@ -4,7 +4,7 @@
  */
 
 const Stripe = require('stripe');
-const { createClient } = require('@supabase/supabase-js');
+const { wiznoteAdmin } = require('../server/lib/supabase-admin');
 const subscriptionSync = require('../services/subscription-sync');
 
 module.exports = async (req, res) => {
@@ -57,8 +57,8 @@ module.exports = async (req, res) => {
   readiness.checks.env = {
     STRIPE_SECRET_KEY: !!process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: !!process.env.STRIPE_WEBHOOK_SECRET,
-    SUPABASE_URL: !!process.env.SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    WIZNOTE_SUPABASE_URL: !!process.env.WIZNOTE_SUPABASE_URL,
+    WIZNOTE_SUPABASE_SECRET_KEY: !!(process.env.WIZNOTE_SUPABASE_SECRET_KEY || process.env.WIZNOTE_SUPABASE_SERVICE_KEY),
   };
   
   // Check Stripe connection
@@ -79,14 +79,10 @@ module.exports = async (req, res) => {
     readiness.errors.push(`Stripe: ${e.message}`);
   }
   
-  // Check Supabase connection
+  // Check Supabase connection (wiznote database)
   try {
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const supabase = createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
-      await supabase.from('premium_plans').select('id').limit(1);
+    if (process.env.WIZNOTE_SUPABASE_URL && (process.env.WIZNOTE_SUPABASE_SECRET_KEY || process.env.WIZNOTE_SUPABASE_SERVICE_KEY)) {
+      await wiznoteAdmin.from('premium_plans').select('id').limit(1);
       readiness.checks.supabase = true;
     } else {
       readiness.checks.supabase = false;

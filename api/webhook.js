@@ -4,23 +4,15 @@
  */
 
 const Stripe = require('stripe');
-const { createClient } = require('@supabase/supabase-js');
-
-// Initialize clients
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const { wiznoteAdmin } = require('../server/lib/supabase-admin');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20'
 });
 
-// Initialize Supabase client for main app database
-const mainAppSupabase = createClient(
-  process.env.WIZNOTE_SUPABASE_URL,
-  process.env.WIZNOTE_SUPABASE_SERVICE_KEY
-);
+// Use wiznoteAdmin for accessing both user_profiles and premium_plans
+const supabase = wiznoteAdmin;
+const mainAppSupabase = wiznoteAdmin;
 
 // Webhook handler functions
 async function handleSubscriptionCreated(subscription) {
