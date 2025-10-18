@@ -5,7 +5,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: node scripts/auto-stripe-guardian-render.js
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: development
@@ -21,7 +21,7 @@ services:
         sync: false
       - key: WIZNOTE_SUPABASE_SERVICE_KEY
         sync: false
-    healthCheckPath: /health
+    healthCheckPath: /api/health
     autoDeploy: false  # Manual deploy for dev
     
   # Production Instance - Uses Stripe LIVE keys  
