@@ -37,5 +37,5 @@ stripe-health-report-*.json
 
 # Directories not needed for production
 scripts
-server
 public
+# NOTE: server/ directory IS needed - contains server/lib/supabase-admin.js and other modules
