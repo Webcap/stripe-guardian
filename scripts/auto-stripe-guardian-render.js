@@ -116,6 +116,22 @@ const server = http.createServer((req, res) => {
     
     res.writeHead(200);
     res.end(JSON.stringify(readiness, null, 2));
+  } else if (req.url === '/sync-status') {
+    const syncStatus = {
+      ok: true,
+      sync: {
+        enabled: isRunning,
+        lastCheck: lastHealthCheck ? new Date(lastHealthCheck).toISOString() : null,
+        consecutiveFailures,
+        healthCheckInterval: CONFIG.healthCheckIntervalMs / 1000 + 's',
+        autoFixInterval: CONFIG.autoFixIntervalMs / 1000 + 's',
+        uptime: process.uptime()
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    res.writeHead(200);
+    res.end(JSON.stringify(syncStatus, null, 2));
   } else if (req.url === '/') {
     const info = {
       service: 'Stripe Guardian',
@@ -124,7 +140,8 @@ const server = http.createServer((req, res) => {
       timestamp: new Date().toISOString(),
       endpoints: {
         health: '/health',
-        ready: '/ready'
+        ready: '/ready',
+        syncStatus: '/sync-status'
       }
     };
     
@@ -132,7 +149,7 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify(info, null, 2));
   } else {
     res.writeHead(404);
-    res.end(JSON.stringify({ error: 'Not Found', availableEndpoints: ['/', '/health', '/ready'] }));
+    res.end(JSON.stringify({ error: 'Not Found', availableEndpoints: ['/', '/health', '/ready', '/sync-status'] }));
   }
 });
 

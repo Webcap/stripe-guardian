@@ -1,24 +1,50 @@
 services:
+  # Development Instance - Uses Stripe TEST keys
   - type: web
     name: stripe-guardian-dev
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: node scripts/auto-stripe-guardian-render.js
     envVars:
       - key: NODE_ENV
         value: development
       - key: PORT
         value: 8080
       - key: STRIPE_SECRET_KEY
-        sync: false
+        sync: false  # Set to your TEST key: sk_test_...
       - key: STRIPE_WEBHOOK_SECRET
-        sync: false
+        sync: false  # Set to your TEST webhook secret
       - key: WIZNOTE_SUPABASE_URL
         sync: false
       - key: WIZNOTE_SUPABASE_SECRET_KEY
         sync: false
       - key: WIZNOTE_SUPABASE_SERVICE_KEY
         sync: false
-    healthCheckPath: /api/health
-    autoDeploy: true
+    healthCheckPath: /health
+    autoDeploy: false  # Manual deploy for dev
+    
+  # Production Instance - Uses Stripe LIVE keys  
+  - type: web
+    name: stripe-guardian-prod
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node scripts/auto-stripe-guardian-render.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: STRIPE_SECRET_KEY
+        sync: false  # Set to your LIVE key: sk_live_...
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false  # Set to your LIVE webhook secret
+      - key: WIZNOTE_SUPABASE_URL
+        sync: false
+      - key: WIZNOTE_SUPABASE_SECRET_KEY
+        sync: false
+      - key: WIZNOTE_SUPABASE_SERVICE_KEY
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true  # Auto-deploy for prod
