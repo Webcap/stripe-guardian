@@ -65,11 +65,14 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // Extract pathname without query parameters
+      const pathname = url.split('?')[0].split('#')[0];
+
       // Find handler for route
       let handler;
-      if (routes[url]) {
+      if (routes[pathname]) {
         // Exact match
-        handler = require(routes[url]);
+        handler = require(routes[pathname]);
       } else {
         // Try catchall
         handler = require('./api/[...catchall].js');
