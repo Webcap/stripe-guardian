@@ -2,12 +2,11 @@
 // Stripe Service Foundation - Server Version
 // Phase 1: Foundation - Stripe Integration
 // This version is for server-side use only (webhooks, admin operations)
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.stripeService = exports.StripeService = void 0;
-const stripe_1 = __importDefault(require("stripe"));
+
+const Stripe = require("stripe");
 const supabase_1 = require("../lib/supabase");
 class StripeService {
     constructor() {
@@ -37,7 +36,7 @@ class StripeService {
     initializeStripe() {
         try {
             console.log('StripeService: Initializing Stripe SDK...');
-            this.stripe = new stripe_1.default(this.apiKey, {
+            this.stripe = new Stripe(this.apiKey, {
                 // Use a stable GA API version
                 apiVersion: '2025-07-30.basil',
                 typescript: true,
