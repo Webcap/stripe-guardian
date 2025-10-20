@@ -27,13 +27,20 @@ const routes = {
   '/api/stripe/confirm-paymentsheet': './api/stripe/confirm-paymentsheet.js',
   '/api/stripe/cancel-subscription': './api/stripe/cancel-subscription.js',
   '/api/stripe/reactivate-subscription': './api/stripe/reactivate-subscription.js',
+  '/api/stripe/get-billing-history': './api/stripe/get-billing-history.js',
+  // Promotion endpoints
+  '/api/stripe/create-coupon': './api/stripe/create-coupon.js',
+  '/api/stripe/create-promotion-code': './api/stripe/create-promotion-code.js',
+  '/api/stripe/create-discounted-price': './api/stripe/create-discounted-price.js',
+  '/api/stripe/validate-coupon': './api/stripe/validate-coupon.js',
 };
 
 const server = http.createServer(async (req, res) => {
-  // Set CORS headers
+  // Set CORS headers - Allow all origins for development and production
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   // Handle OPTIONS preflight
   if (req.method === 'OPTIONS') {
