@@ -1,10 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.db = exports.supabase = void 0;
-const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
+
+const AsyncStorage = require("@react-native-async-storage/async-storage");
 const supabase_js_1 = require("@supabase/supabase-js");
 const react_native_1 = require("react-native");
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -47,7 +46,7 @@ const getStorage = () => {
     }
     else {
         // Mobile platform - use AsyncStorage
-        return async_storage_1.default;
+        return AsyncStorage.default || AsyncStorage;
     }
 };
 // Create Supabase client with cross-platform configuration
