@@ -33,8 +33,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Get session_id from query parameters
-    const sessionId = req.query.session_id;
+    // Parse query parameters from URL
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const sessionId = url.searchParams.get('session_id');
+    
     if (!sessionId) {
       res.writeHead(400, corsHeaders);
       res.end(JSON.stringify({ error: 'Missing session_id parameter' }));
