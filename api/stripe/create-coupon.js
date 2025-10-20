@@ -103,9 +103,19 @@ module.exports = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating coupon:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      statusCode: error.statusCode,
+      raw: error.raw
+    });
     res.status(500).json({
       error: 'Failed to create coupon',
-      details: error.message
+      details: error.message,
+      type: error.type || 'unknown',
+      code: error.code || 'unknown'
     });
   }
 };

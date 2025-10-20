@@ -560,11 +560,12 @@ class StripeService {
         try {
             await this.ensureInitialized();
             console.log('StripeService: Creating promotion coupon:', promotionData.name);
+            console.log('StripeService: Promotion data:', JSON.stringify(promotionData, null, 2));
             
             const couponData = {
                 name: promotionData.name,
                 metadata: {
-                    promotionId: promotionData.id,
+                    promotionId: promotionData.id || 'none',
                     source: 'wiznote_promotion_system'
                 }
             };
@@ -587,7 +588,18 @@ class StripeService {
             // Set expiration if provided
             if (promotionData.endDate) {
                 const endDate = new Date(promotionData.endDate);
-                couponData.redeem_by = Math.floor(endDate.getTime() / 1000);
+                const timestamp = Math.floor(endDate.getTime() / 1000);
+                const now = Math.floor(Date.now() / 1000);
+                
+                console.log('StripeService: End date:', endDate.toISOString());
+                console.log('StripeService: Timestamp:', timestamp, 'Current:', now, 'In future:', timestamp > now);
+                
+                // Only set redeem_by if it's in the future
+                if (timestamp > now) {
+                    couponData.redeem_by = timestamp;
+                } else {
+                    console.warn('StripeService: End date is in the past, skipping redeem_by');
+                }
             }
             
             // Set max redemptions if provided
@@ -595,12 +607,20 @@ class StripeService {
                 couponData.max_redemptions = promotionData.maxRedemptions;
             }
             
+            console.log('StripeService: Final coupon data:', JSON.stringify(couponData, null, 2));
+            
             const coupon = await this.stripe.coupons.create(couponData);
-            console.log(`StripeService: Created coupon ${coupon.id} for promotion ${promotionData.id}`);
+            console.log(`StripeService: Created coupon ${coupon.id} for promotion ${promotionData.id || 'none'}`);
             
             return { couponId: coupon.id, coupon };
         } catch (error) {
             console.error('StripeService: Error creating promotion coupon:', error);
+            console.error('StripeService: Error details:', {
+                message: error.message,
+                type: error.type,
+                code: error.code,
+                statusCode: error.statusCode
+            });
             throw error;
         }
     }
