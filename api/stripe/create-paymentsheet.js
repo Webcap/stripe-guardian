@@ -65,7 +65,16 @@ const handler = async (req, res) => {
     }
 
     // Parse request body
-    const { userId, email, planId, stripePriceId, productId, platform } = req.body || {};
+    const { 
+      userId, 
+      email, 
+      planId, 
+      stripePriceId, 
+      productId, 
+      platform,
+      couponId = null,  // Optional: Stripe coupon ID for promotions
+      promotionId = null  // Optional: Internal promotion ID for tracking
+    } = req.body || {};
     
     if (!userId || !email || !planId) {
       res.writeHead(400, corsHeaders);
@@ -195,7 +204,9 @@ const handler = async (req, res) => {
         planId,
         stripePriceId,
         productId,
-        platform 
+        platform,
+        couponId: couponId || '',  // Pass coupon for later subscription creation
+        promotionId: promotionId || ''  // Pass promotion ID for tracking
       },
       automatic_payment_methods: {
         enabled: true,

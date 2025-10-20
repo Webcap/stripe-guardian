@@ -34,7 +34,16 @@ module.exports = async (req, res) => {
 
   try {
     // Parse request body
-    const { userId, email, planId, priceId, successUrl = '', cancelUrl = '' } = req.body || {};
+    const { 
+      userId, 
+      email, 
+      planId, 
+      priceId, 
+      successUrl = '', 
+      cancelUrl = '',
+      couponId = null,  // Optional: Stripe coupon ID for promotions
+      promotionId = null  // Optional: Internal promotion ID for tracking
+    } = req.body || {};
     
     if (!userId || !email || !planId || !priceId) {
       res.writeHead(400, corsHeaders);
@@ -216,16 +225,38 @@ module.exports = async (req, res) => {
     }
 
     // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      subscription_data: { metadata: { planId } },
+      subscription_data: { 
+        metadata: { 
+          planId,
+          promotionId: promotionId || undefined
+        } 
+      },
       success_url: successUrl,
       cancel_url: cancelUrl,
-      metadata: { planId },
-    });
+      metadata: { 
+        planId,
+        promotionId: promotionId || undefined
+      },
+    };
+    
+    // Apply coupon if provided
+    if (couponId) {
+      console.log(`Applying coupon ${couponId} to checkout session`);
+      sessionParams.discounts = [{ coupon: couponId }];
+      
+      // Optionally allow user to enter promotion codes at checkout
+      // sessionParams.allow_promotion_codes = true;
+    } else {
+      // Allow users to enter promotion codes if no coupon is pre-applied
+      sessionParams.allow_promotion_codes = true;
+    }
+    
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Return success response with checkout URL
     res.writeHead(200, corsHeaders);

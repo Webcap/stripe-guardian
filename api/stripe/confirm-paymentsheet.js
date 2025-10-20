@@ -78,7 +78,7 @@ const handler = async (req, res) => {
     }
 
     // Retrieve the setup intent to get the payment method
-    let paymentMethod, customerId;
+    let paymentMethod, customerId, couponId, promotionId;
     
     if (setupIntentId) {
       // New flow: using SetupIntent
@@ -92,7 +92,9 @@ const handler = async (req, res) => {
       
       paymentMethod = setupIntent.payment_method;
       customerId = setupIntent.customer;
-      console.log(`SetupIntent succeeded, payment method: ${paymentMethod}`);
+      couponId = setupIntent.metadata.couponId || null;
+      promotionId = setupIntent.metadata.promotionId || null;
+      console.log(`SetupIntent succeeded, payment method: ${paymentMethod}, couponId: ${couponId}`);
     } else {
       // Old flow: using PaymentIntent (for backward compatibility)
       const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -135,7 +137,7 @@ const handler = async (req, res) => {
     
     // Create subscription using the payment method
     // The subscription will handle the first charge automatically
-    const subscription = await stripe.subscriptions.create({
+    const subscriptionParams = {
       customer: customerId,
       items: [{ price: priceId }],
       default_payment_method: paymentMethod,
@@ -147,9 +149,18 @@ const handler = async (req, res) => {
       metadata: { 
         planId,
         userId,
-        source: 'paymentsheet'
+        source: 'paymentsheet',
+        promotionId: promotionId || undefined
       }
-    });
+    };
+    
+    // Apply coupon if provided
+    if (couponId) {
+      console.log(`Applying coupon ${couponId} to subscription`);
+      subscriptionParams.coupon = couponId;
+    }
+    
+    const subscription = await stripe.subscriptions.create(subscriptionParams);
     
     console.log('Subscription created:', {
       id: subscription.id,

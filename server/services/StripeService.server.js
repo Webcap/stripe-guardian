@@ -546,6 +546,312 @@ class StripeService {
         }
         return this.stripe;
     }
+    
+    // =====================================================
+    // PROMOTION METHODS
+    // =====================================================
+    
+    /**
+     * Create a Stripe coupon for a promotion
+     * @param {Object} promotionData - Promotion configuration
+     * @returns {Promise<Object>} Created coupon with id
+     */
+    async createPromotionCoupon(promotionData) {
+        try {
+            await this.ensureInitialized();
+            console.log('StripeService: Creating promotion coupon:', promotionData.name);
+            
+            const couponData = {
+                name: promotionData.name,
+                metadata: {
+                    promotionId: promotionData.id,
+                    source: 'wiznote_promotion_system'
+                }
+            };
+            
+            // Set discount based on type
+            if (promotionData.discountType === 'percentage') {
+                couponData.percent_off = promotionData.discountValue;
+                couponData.duration = promotionData.duration || 'once';
+            } else if (promotionData.discountType === 'fixed_amount') {
+                couponData.amount_off = Math.round(promotionData.discountValue * 100); // Convert to cents
+                couponData.currency = promotionData.currency || 'usd';
+                couponData.duration = promotionData.duration || 'once';
+            }
+            
+            // Set duration details
+            if (promotionData.durationInMonths && couponData.duration === 'repeating') {
+                couponData.duration_in_months = promotionData.durationInMonths;
+            }
+            
+            // Set expiration if provided
+            if (promotionData.endDate) {
+                const endDate = new Date(promotionData.endDate);
+                couponData.redeem_by = Math.floor(endDate.getTime() / 1000);
+            }
+            
+            // Set max redemptions if provided
+            if (promotionData.maxRedemptions) {
+                couponData.max_redemptions = promotionData.maxRedemptions;
+            }
+            
+            const coupon = await this.stripe.coupons.create(couponData);
+            console.log(`StripeService: Created coupon ${coupon.id} for promotion ${promotionData.id}`);
+            
+            return { couponId: coupon.id, coupon };
+        } catch (error) {
+            console.error('StripeService: Error creating promotion coupon:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Create a promotion code (user-friendly code string) for a coupon
+     * @param {string} couponId - Stripe coupon ID
+     * @param {string} code - Human-readable code (e.g., "SUMMER30")
+     * @param {Object} options - Additional options
+     * @returns {Promise<Object>} Created promotion code
+     */
+    async createPromotionCode(couponId, code, options = {}) {
+        try {
+            await this.ensureInitialized();
+            console.log(`StripeService: Creating promotion code "${code}" for coupon ${couponId}`);
+            
+            const promoCodeData = {
+                coupon: couponId,
+                code: code.toUpperCase(),
+                active: options.active !== false,
+                metadata: options.metadata || {}
+            };
+            
+            if (options.maxRedemptions) {
+                promoCodeData.max_redemptions = options.maxRedemptions;
+            }
+            
+            if (options.expiresAt) {
+                const expiresDate = new Date(options.expiresAt);
+                promoCodeData.expires_at = Math.floor(expiresDate.getTime() / 1000);
+            }
+            
+            const promoCode = await this.stripe.promotionCodes.create(promoCodeData);
+            console.log(`StripeService: Created promotion code ${promoCode.id}`);
+            
+            return { promotionCodeId: promoCode.id, promotionCode: promoCode };
+        } catch (error) {
+            console.error('StripeService: Error creating promotion code:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Create a discounted price for a plan (alternative to coupons)
+     * @param {string} productId - Stripe product ID
+     * @param {Object} plan - Plan configuration
+     * @param {number} discountValue - Discount value (percentage or fixed amount)
+     * @param {string} discountType - 'percentage' or 'fixed_amount'
+     * @returns {Promise<string>} Created price ID
+     */
+    async createDiscountedPrice(productId, plan, discountValue, discountType = 'percentage') {
+        try {
+            await this.ensureInitialized();
+            console.log(`StripeService: Creating discounted price for product ${productId}`);
+            
+            let discountedAmount;
+            
+            if (discountType === 'percentage') {
+                discountedAmount = plan.price * (1 - discountValue / 100);
+            } else {
+                discountedAmount = Math.max(0, plan.price - discountValue);
+            }
+            
+            const priceData = {
+                product: productId,
+                unit_amount: Math.round(discountedAmount * 100), // Convert to cents
+                currency: 'usd',
+                recurring: {
+                    interval: plan.interval || 'month',
+                    interval_count: plan.intervalCount || 1,
+                },
+                metadata: {
+                    planId: plan.id,
+                    planType: plan.type,
+                    isPromotionalPrice: 'true',
+                    originalPrice: plan.price.toString(),
+                    discountValue: discountValue.toString(),
+                    discountType: discountType
+                },
+            };
+            
+            const price = await this.stripe.prices.create(priceData);
+            console.log(`StripeService: Created discounted price ${price.id}`);
+            
+            return price.id;
+        } catch (error) {
+            console.error('StripeService: Error creating discounted price:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Validate a coupon or promotion code
+     * @param {string} code - Coupon ID or promotion code
+     * @returns {Promise<Object>} Validation result with coupon details
+     */
+    async validateCoupon(code) {
+        try {
+            await this.ensureInitialized();
+            console.log(`StripeService: Validating coupon/promo code: ${code}`);
+            
+            let coupon = null;
+            let promoCode = null;
+            
+            // Try as coupon ID first
+            try {
+                coupon = await this.stripe.coupons.retrieve(code);
+            } catch (e) {
+                // Not a coupon ID, try as promotion code
+                try {
+                    const promoCodes = await this.stripe.promotionCodes.list({
+                        code: code.toUpperCase(),
+                        limit: 1
+                    });
+                    
+                    if (promoCodes.data && promoCodes.data.length > 0) {
+                        promoCode = promoCodes.data[0];
+                        coupon = await this.stripe.coupons.retrieve(promoCode.coupon);
+                    }
+                } catch (promoError) {
+                    console.warn('StripeService: Code not found as coupon or promotion code');
+                    return { 
+                        valid: false, 
+                        error: 'Invalid promotion code' 
+                    };
+                }
+            }
+            
+            if (!coupon) {
+                return { 
+                    valid: false, 
+                    error: 'Coupon not found' 
+                };
+            }
+            
+            // Check if coupon is valid
+            if (!coupon.valid) {
+                return { 
+                    valid: false, 
+                    error: 'Coupon is no longer valid' 
+                };
+            }
+            
+            // Check if expired
+            if (coupon.redeem_by && coupon.redeem_by < Math.floor(Date.now() / 1000)) {
+                return { 
+                    valid: false, 
+                    error: 'Coupon has expired' 
+                };
+            }
+            
+            // Check max redemptions
+            if (coupon.max_redemptions && coupon.times_redeemed >= coupon.max_redemptions) {
+                return { 
+                    valid: false, 
+                    error: 'Coupon redemption limit reached' 
+                };
+            }
+            
+            // Check promotion code specific validations
+            if (promoCode) {
+                if (!promoCode.active) {
+                    return { 
+                        valid: false, 
+                        error: 'Promotion code is inactive' 
+                    };
+                }
+                
+                if (promoCode.expires_at && promoCode.expires_at < Math.floor(Date.now() / 1000)) {
+                    return { 
+                        valid: false, 
+                        error: 'Promotion code has expired' 
+                    };
+                }
+                
+                if (promoCode.max_redemptions && promoCode.times_redeemed >= promoCode.max_redemptions) {
+                    return { 
+                        valid: false, 
+                        error: 'Promotion code redemption limit reached' 
+                    };
+                }
+            }
+            
+            console.log(`StripeService: Coupon ${code} is valid`);
+            return { 
+                valid: true, 
+                coupon,
+                promoCode,
+                discountType: coupon.percent_off ? 'percentage' : 'fixed_amount',
+                discountValue: coupon.percent_off || (coupon.amount_off / 100)
+            };
+        } catch (error) {
+            console.error('StripeService: Error validating coupon:', error);
+            return { 
+                valid: false, 
+                error: 'Error validating coupon' 
+            };
+        }
+    }
+    
+    /**
+     * Apply a coupon to a checkout session
+     * @param {Object} sessionParams - Checkout session parameters
+     * @param {string} couponId - Coupon or promotion code ID
+     * @returns {Object} Updated session params
+     */
+    applyCouponToCheckout(sessionParams, couponId) {
+        console.log(`StripeService: Applying coupon ${couponId} to checkout session`);
+        
+        // Add coupon/promo code to session
+        sessionParams.discounts = [{
+            coupon: couponId
+        }];
+        
+        // Alternatively, if it's a promotion code string, use allow_promotion_codes
+        // sessionParams.allow_promotion_codes = true;
+        
+        return sessionParams;
+    }
+    
+    /**
+     * Retrieve a coupon by ID
+     * @param {string} couponId - Coupon ID
+     * @returns {Promise<Object>} Coupon object
+     */
+    async getCoupon(couponId) {
+        try {
+            await this.ensureInitialized();
+            return await this.stripe.coupons.retrieve(couponId);
+        } catch (error) {
+            console.error('StripeService: Error retrieving coupon:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Deactivate/delete a coupon
+     * @param {string} couponId - Coupon ID to deactivate
+     * @returns {Promise<boolean>} Success status
+     */
+    async deactivateCoupon(couponId) {
+        try {
+            await this.ensureInitialized();
+            console.log(`StripeService: Deactivating coupon ${couponId}`);
+            await this.stripe.coupons.del(couponId);
+            return true;
+        } catch (error) {
+            console.error('StripeService: Error deactivating coupon:', error);
+            throw error;
+        }
+    }
 }
 exports.StripeService = StripeService;
 exports.stripeService = StripeService.getInstance();
