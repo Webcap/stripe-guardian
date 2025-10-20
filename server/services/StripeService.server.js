@@ -7,7 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.stripeService = exports.StripeService = void 0;
 
 const Stripe = require("stripe");
-const supabase_1 = require("../lib/supabase");
+const supabase_1 = require("../lib/supabase-admin");
 class StripeService {
     constructor() {
         this.initialized = false;
