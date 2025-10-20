@@ -19,12 +19,15 @@ module.exports = async (req, res) => {
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
+    res.writeHead(200);
+    res.end();
     return;
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
   }
 
   try {
@@ -42,30 +45,38 @@ module.exports = async (req, res) => {
 
     // Validate required fields
     if (!name || !discountType || !discountValue) {
-      return res.status(400).json({
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
         error: 'Missing required fields: name, discountType, discountValue'
-      });
+      }));
+      return;
     }
 
     // Validate discount type
     if (!['percentage', 'fixed_amount'].includes(discountType)) {
-      return res.status(400).json({
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
         error: 'discountType must be "percentage" or "fixed_amount"'
-      });
+      }));
+      return;
     }
 
     // Validate percentage value
     if (discountType === 'percentage' && (discountValue < 1 || discountValue > 100)) {
-      return res.status(400).json({
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
         error: 'percentage discount must be between 1 and 100'
-      });
+      }));
+      return;
     }
 
     // Validate duration
     if (!['once', 'repeating', 'forever'].includes(duration)) {
-      return res.status(400).json({
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
         error: 'duration must be "once", "repeating", or "forever"'
-      });
+      }));
+      return;
     }
 
     console.log(`Creating coupon for promotion: ${name}`);
@@ -84,7 +95,8 @@ module.exports = async (req, res) => {
 
     const result = await stripeService.createPromotionCoupon(promotionData);
 
-    res.status(200).json({
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
       success: true,
       couponId: result.couponId,
       coupon: {
@@ -100,7 +112,7 @@ module.exports = async (req, res) => {
         timesRedeemed: result.coupon.times_redeemed,
         valid: result.coupon.valid
       }
-    });
+    }));
   } catch (error) {
     console.error('Error creating coupon:', error);
     console.error('Error stack:', error.stack);
@@ -111,12 +123,13 @@ module.exports = async (req, res) => {
       statusCode: error.statusCode,
       raw: error.raw
     });
-    res.status(500).json({
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
       error: 'Failed to create coupon',
       details: error.message,
       type: error.type || 'unknown',
       code: error.code || 'unknown'
-    });
+    }));
   }
 };
 
