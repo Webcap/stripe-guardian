@@ -155,6 +155,8 @@ class SubscriptionSyncService {
           // Get current dates from database
           const dbCurrentPeriodStart = currentPremium.currentPeriodStart;
           const dbCurrentPeriodEnd = currentPremium.currentPeriodEnd;
+          const dbCancelAtPeriodEnd = currentPremium.cancelAtPeriodEnd;
+          const dbPlanId = currentPremium.planId;
           
           // Calculate what dates should be from Stripe
           const stripeCurrentPeriodStart = subscription.current_period_start 
@@ -163,35 +165,67 @@ class SubscriptionSyncService {
           const stripeCurrentPeriodEnd = subscription.current_period_end 
             ? new Date(subscription.current_period_end * 1000).toISOString() 
             : null;
+          const stripeCancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+          const stripePlanId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
           
-          // Check if dates differ
+          // Check if any fields differ (comprehensive comparison to avoid unnecessary updates)
+          const subscriptionIdDiffers = currentPremium.stripeSubscriptionId !== subscription.id;
+          const statusDiffers = currentPremium.status !== subscription.status;
+          const isActiveDiffers = currentPremium.isActive !== true;
           const datesDiffer = 
             dbCurrentPeriodStart !== stripeCurrentPeriodStart ||
             dbCurrentPeriodEnd !== stripeCurrentPeriodEnd;
+          const cancelAtDiffers = dbCancelAtPeriodEnd !== stripeCancelAtPeriodEnd;
+          const planIdDiffers = dbPlanId !== stripePlanId;
           
-          // Check if update is needed
+          // Only update if something actually changed
           const needsUpdate = 
-            currentPremium.stripeSubscriptionId !== subscription.id ||
-            currentPremium.status !== subscription.status ||
-            !currentPremium.isActive ||
-            datesDiffer;
+            subscriptionIdDiffers ||
+            statusDiffers ||
+            isActiveDiffers ||
+            datesDiffer ||
+            cancelAtDiffers ||
+            planIdDiffers;
+          
+          // Log what's different (if anything)
+          if (needsUpdate && (subscriptionIdDiffers || statusDiffers || datesDiffer || cancelAtDiffers || planIdDiffers)) {
+            if (subscriptionIdDiffers) console.log(`   🔄 Subscription ID changed`);
+            if (statusDiffers) console.log(`   🔄 Status changed: ${currentPremium.status} → ${subscription.status}`);
+            if (datesDiffer) console.log(`   🔄 Dates changed`);
+            if (cancelAtDiffers) console.log(`   🔄 Cancel at period end changed: ${dbCancelAtPeriodEnd} → ${stripeCancelAtPeriodEnd}`);
+            if (planIdDiffers) console.log(`   🔄 Plan ID changed`);
+          }
 
           if (needsUpdate) {
-            const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
+            console.log(`   📝 Updating user profile with latest data from Stripe`);
+
+            // Build update object - only update fields that actually differ
+            const premiumUpdate = {
+              isActive: true,
+              stripeSubscriptionId: subscription.id,
+              status: subscription.status,
+              updatedAt: new Date().toISOString(),
+            };
+
+            // Only update fields that actually changed
+            if (planIdDiffers) premiumUpdate.planId = stripePlanId;
+            if (datesDiffer) {
+              premiumUpdate.currentPeriodStart = stripeCurrentPeriodStart;
+              premiumUpdate.currentPeriodEnd = stripeCurrentPeriodEnd;
+            }
+            if (cancelAtDiffers) premiumUpdate.cancelAtPeriodEnd = stripeCancelAtPeriodEnd;
+            if (subscriptionIdDiffers) premiumUpdate.stripeCustomerId = customerId;
+
+            // Preserve existing fields
+            const updatedPremium = {
+              ...currentPremium,
+              ...premiumUpdate
+            };
 
             const { error: updateError } = await this.supabase
               .from('user_profiles')
               .update({
-                premium: {
-                  isActive: true,
-                  planId: planId,
-                  stripeSubscriptionId: subscription.id,
-                  stripeCustomerId: customerId,
-                  status: subscription.status,
-                  currentPeriodEnd: stripeCurrentPeriodEnd,
-                  currentPeriodStart: stripeCurrentPeriodStart,
-                  updatedAt: new Date().toISOString(),
-                },
+                premium: updatedPremium,
                 updated_at: new Date().toISOString(),
               })
               .eq('id', user.id);
@@ -243,36 +277,64 @@ class SubscriptionSyncService {
         const currentPeriodEnd = user.premium.currentPeriodEnd;
         
         if (currentPeriodEnd && currentPeriodEnd < now) {
-          // Period has expired, verify with Stripe
-          if (user.premium.stripeSubscriptionId) {
-            try {
-              const subscription = await this.stripe.subscriptions.retrieve(
-                user.premium.stripeSubscriptionId
-              );
+          // Period has expired - check if already deactivated in database
+          if (user.premium.isActive) {
+            // Only call Stripe API if status in DB is still active
+            if (user.premium.stripeSubscriptionId) {
+              try {
+                const subscription = await this.stripe.subscriptions.retrieve(
+                  user.premium.stripeSubscriptionId
+                );
 
-              // Only deactivate if Stripe confirms it's not active
-              if (!['active', 'trialing'].includes(subscription.status)) {
-                const { error: updateError } = await this.supabase
-                  .from('user_profiles')
-                  .update({
-                    premium: {
-                      ...user.premium,
-                      isActive: false,
-                      status: subscription.status,
-                      updatedAt: new Date().toISOString(),
-                    },
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', user.id);
+                // Only deactivate if Stripe confirms it's not active
+                if (!['active', 'trialing'].includes(subscription.status)) {
+                  console.log(`   ⏰ Deactivating expired subscription for user ${user.id} (Status: ${subscription.status})`);
+                  
+                  const { error: updateError } = await this.supabase
+                    .from('user_profiles')
+                    .update({
+                      premium: {
+                        ...user.premium,
+                        isActive: false,
+                        status: subscription.status,
+                        updatedAt: new Date().toISOString(),
+                      },
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', user.id);
 
-                if (!updateError) {
-                  expiredCount++;
-                  console.log(`   ⏰ Deactivated expired subscription for user ${user.id}`);
+                  if (!updateError) {
+                    expiredCount++;
+                    console.log(`   ✅ Deactivated expired subscription for user ${user.id}`);
+                  }
                 }
+              } catch (stripeError) {
+                console.error(`   ⚠️  Could not verify subscription ${user.premium.stripeSubscriptionId}:`, stripeError.message);
               }
-            } catch (stripeError) {
-              console.error(`   ⚠️  Could not verify subscription ${user.premium.stripeSubscriptionId}:`, stripeError.message);
+            } else {
+              // No Stripe subscription ID, just deactivate based on expired date
+              console.log(`   ⏰ Deactivating user ${user.id} - no Stripe subscription ID found`);
+              
+              const { error: updateError } = await this.supabase
+                .from('user_profiles')
+                .update({
+                  premium: {
+                    ...user.premium,
+                    isActive: false,
+                    status: 'expired',
+                    updatedAt: new Date().toISOString(),
+                  },
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', user.id);
+
+              if (!updateError) {
+                expiredCount++;
+                console.log(`   ✅ Deactivated expired subscription for user ${user.id}`);
+              }
             }
+          } else {
+            console.log(`   ⏭️  User ${user.id} already deactivated, skipping`);
           }
         }
       }
@@ -319,29 +381,41 @@ class SubscriptionSyncService {
           const user = users[0];
 
           // Only update if the user still has this subscription marked as active
-          if (user.premium?.stripeSubscriptionId === subscription.id && user.premium?.isActive) {
-            const currentPeriodEnd = subscription.current_period_end 
-              ? new Date(subscription.current_period_end * 1000).toISOString() 
-              : null;
+          // Skip if already marked as canceled with same subscription ID
+          if (user.premium?.stripeSubscriptionId === subscription.id) {
+            // Check if already canceled
+            if (user.premium.isActive === false && user.premium.status === 'canceled') {
+              console.log(`   ⏭️  User ${user.id} already marked as canceled, skipping`);
+              continue;
+            }
 
-            const { error: updateError } = await this.supabase
-              .from('user_profiles')
-              .update({
-                premium: {
-                  ...user.premium,
-                  isActive: false,
-                  status: 'canceled',
-                  currentPeriodEnd: currentPeriodEnd,
-                  canceledAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                },
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', user.id);
+            // If still active, need to mark as canceled
+            if (user.premium?.isActive) {
+              console.log(`   🚫 Marking subscription as canceled for user ${user.id}`);
+              
+              const currentPeriodEnd = subscription.current_period_end 
+                ? new Date(subscription.current_period_end * 1000).toISOString() 
+                : null;
 
-            if (!updateError) {
-              syncedCount++;
-              console.log(`   🚫 Synced canceled subscription for user ${user.id}`);
+              const { error: updateError } = await this.supabase
+                .from('user_profiles')
+                .update({
+                  premium: {
+                    ...user.premium,
+                    isActive: false,
+                    status: 'canceled',
+                    currentPeriodEnd: currentPeriodEnd,
+                    canceledAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  },
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', user.id);
+
+              if (!updateError) {
+                syncedCount++;
+                console.log(`   ✅ Synced canceled subscription for user ${user.id}`);
+              }
             }
           }
         } catch (error) {
