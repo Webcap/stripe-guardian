@@ -152,20 +152,32 @@ class SubscriptionSyncService {
           const user = users[0];
           const currentPremium = user.premium || {};
 
+          // Get current dates from database
+          const dbCurrentPeriodStart = currentPremium.currentPeriodStart;
+          const dbCurrentPeriodEnd = currentPremium.currentPeriodEnd;
+          
+          // Calculate what dates should be from Stripe
+          const stripeCurrentPeriodStart = subscription.current_period_start 
+            ? new Date(subscription.current_period_start * 1000).toISOString() 
+            : null;
+          const stripeCurrentPeriodEnd = subscription.current_period_end 
+            ? new Date(subscription.current_period_end * 1000).toISOString() 
+            : null;
+          
+          // Check if dates differ
+          const datesDiffer = 
+            dbCurrentPeriodStart !== stripeCurrentPeriodStart ||
+            dbCurrentPeriodEnd !== stripeCurrentPeriodEnd;
+          
           // Check if update is needed
           const needsUpdate = 
             currentPremium.stripeSubscriptionId !== subscription.id ||
             currentPremium.status !== subscription.status ||
-            !currentPremium.isActive;
+            !currentPremium.isActive ||
+            datesDiffer;
 
           if (needsUpdate) {
             const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
-            const currentPeriodEnd = subscription.current_period_end 
-              ? new Date(subscription.current_period_end * 1000).toISOString() 
-              : null;
-            const currentPeriodStart = subscription.current_period_start 
-              ? new Date(subscription.current_period_start * 1000).toISOString() 
-              : null;
 
             const { error: updateError } = await this.supabase
               .from('user_profiles')
@@ -176,8 +188,8 @@ class SubscriptionSyncService {
                   stripeSubscriptionId: subscription.id,
                   stripeCustomerId: customerId,
                   status: subscription.status,
-                  currentPeriodEnd: currentPeriodEnd,
-                  currentPeriodStart: currentPeriodStart,
+                  currentPeriodEnd: stripeCurrentPeriodEnd,
+                  currentPeriodStart: stripeCurrentPeriodStart,
                   updatedAt: new Date().toISOString(),
                 },
                 updated_at: new Date().toISOString(),
