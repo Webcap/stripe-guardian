@@ -1,10 +1,12 @@
 # Dependencies
 node_modules
 npm-debug.log
+package-lock.json.backup
 
 # Git
 .git
 .gitignore
+.gitattributes
 
 # Environment
 .env
@@ -14,16 +16,28 @@ npm-debug.log
 # Logs
 logs
 *.log
+*.log.*
 
-# Documentation
+# Documentation (exclude all markdown except deployment docs)
 README.md
 *.md
-!SPACESHIP_HYPERLIFT_DEPLOYMENT.md
+!DOCKERFILE_OPTIMIZATION.md
+!DOCKER_REGISTRY_STORAGE_FIX.md
 
 # IDE
 .vscode
 .idea
 .DS_Store
+*.swp
+*.swo
+*~
+
+# Build artifacts
+dist
+build
+.cache
+.next
+out
 
 # Deployment configs for other platforms
 docker-compose.yml
@@ -31,11 +45,32 @@ render.yaml
 vercel.json
 VERCEL_DEPLOYMENT.md
 RENDER_DEPLOYMENT.md
+DEPLOYMENT_*.md
+*_DEPLOYMENT.md
 
-# Health reports
+# Health reports and large JSON files
 stripe-health-report-*.json
+*.json
+!package.json
+!package-lock.json
+
+# Test files
+test
+tests
+__tests__
+*.test.js
+*.spec.js
+*.test.ts
+*.spec.ts
 
 # Directories not needed for production
 scripts
 public
+docs
+
+# Temporary files
+tmp
+temp
+*.tmp
+
 # NOTE: server/ directory IS needed - contains server/lib/supabase-admin.js and other modules
