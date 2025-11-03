@@ -514,10 +514,18 @@ async function handlePaymentFailed(invoice) {
 }
 
 module.exports = async (req, res) => {
-    // Set CORS headers - allow both production and development origins
-    const allowedOrigins = [
+    // SECURITY: Environment-aware CORS configuration
+    // Production: Only allow specific production domains
+    // Development: Allow localhost for local testing
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
+    
+    const productionOrigins = [
         'https://stripe.webcap.media',
         'https://webcap.media',
+        'https://wiznote.app',
+    ];
+    
+    const developmentOrigins = [
         'http://localhost:8081',
         'http://localhost:3000',
         'http://localhost:3001',
@@ -526,14 +534,29 @@ module.exports = async (req, res) => {
         'http://127.0.0.1:3001'
     ];
     
+    const allowedOrigins = isDevelopment 
+        ? [...productionOrigins, ...developmentOrigins]
+        : productionOrigins;
+    
     const origin = req.headers.origin;
+    let allowedOrigin = null;
+    
     if (origin && allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
+        allowedOrigin = origin;
+    } else if (isDevelopment && origin) {
+        // In development, log but allow (for debugging)
+        console.warn(`[SECURITY] CORS: Unallowed origin attempted: ${origin}`);
+        allowedOrigin = origin; // Allow in dev for easier testing
     } else {
-        res.setHeader('Access-Control-Allow-Origin', 'https://stripe.webcap.media');
+        // Production: Default to primary production domain
+        allowedOrigin = 'https://stripe.webcap.media';
     }
+    
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Stripe-Signature');
+    res.setHeader('Access-Control-Allow-Credentials', 'false'); // Webhooks don't need credentials
+    res.setHeader('Vary', 'Origin'); // Important for CORS caching
     
     // Handle preflight request
     if (req.method === 'OPTIONS') {
