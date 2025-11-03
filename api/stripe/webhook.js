@@ -298,6 +298,8 @@ async function handleSubscriptionUpdated(subscription) {
         const planId = subscription.metadata?.planId || subscription.items.data[0]?.price.id;
         
         // Build updated premium object, preserving existing fields
+        // Preserve billing dates if they already exist (e.g., from original subscription creation)
+        // Only use Stripe's dates if we don't have existing ones
         const updatedPremium = {
             ...existingPremium, // Preserve all existing fields
             isActive: isActive,
@@ -306,8 +308,8 @@ async function handleSubscriptionUpdated(subscription) {
             stripeSubscriptionId: subscription.id,
             stripeCustomerId: subscription.customer,
             status: subscription.status,
-            currentPeriodEnd: currentPeriodEnd,
-            currentPeriodStart: currentPeriodStart,
+            currentPeriodEnd: existingPremium.currentPeriodEnd || currentPeriodEnd,
+            currentPeriodStart: existingPremium.currentPeriodStart || currentPeriodStart,
             cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
             updatedAt: new Date().toISOString()
         };

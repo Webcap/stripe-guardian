@@ -63,10 +63,10 @@ async function handleSubscriptionUpdated(subscription) {
   try {
     console.log(`📅 Subscription updated: ${subscription.id} for customer ${subscription.customer}, Status: ${subscription.status}`);
     
-    // Find user by Stripe customer ID
+    // Find user by Stripe customer ID and get existing premium data
     const { data: user, error: userError } = await mainAppSupabase
       .from('user_profiles')
-      .select('id')
+      .select('id, premium')
       .eq('stripe_customer_id', subscription.customer)
       .single();
 
@@ -75,13 +75,17 @@ async function handleSubscriptionUpdated(subscription) {
       return;
     }
 
-    // Update user's premium status
+    const existingPremium = user.premium || {};
+    
+    // Update user's premium status, preserving existing billing dates if they exist
     const premiumData = {
+      ...existingPremium, // Preserve all existing fields
       isActive: subscription.status === 'active' || subscription.status === 'trialing',
       status: subscription.status,
       stripeSubscriptionId: subscription.id,
-      currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000).toISOString() : null,
-      currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+      // Preserve billing dates if they already exist, only use Stripe dates if we don't have them
+      currentPeriodStart: existingPremium.currentPeriodStart || (subscription.current_period_start ? new Date(subscription.current_period_start * 1000).toISOString() : null),
+      currentPeriodEnd: existingPremium.currentPeriodEnd || (subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null),
       updatedAt: new Date().toISOString()
     };
 

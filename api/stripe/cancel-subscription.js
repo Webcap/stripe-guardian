@@ -91,8 +91,10 @@ module.exports = async (req, res) => {
       status: subscription.status, // Keep the actual Stripe status (usually 'active')
       cancelAtPeriodEnd: true,
       canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : new Date().toISOString(),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-      currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+      // Only update billing dates if they don't already exist or are invalid
+      // This prevents overwriting correct billing dates with potentially incorrect ones
+      currentPeriodEnd: profile.premium?.currentPeriodEnd || new Date(subscription.current_period_end * 1000).toISOString(),
+      currentPeriodStart: profile.premium?.currentPeriodStart || new Date(subscription.current_period_start * 1000).toISOString(),
       updatedAt: new Date().toISOString()
     };
 
