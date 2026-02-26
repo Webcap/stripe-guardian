@@ -6,12 +6,12 @@
  */
 
 const { stripeService } = require('../../server/services/StripeService.server');
+const { getCorsHeaders } = require('../../server/lib/cors');
 
 module.exports = async (req, res) => {
-  // Set CORS headers
+  const corsHeaders = getCorsHeaders(req);
+  Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
+    res.writeHead(200, corsHeaders);
     res.end();
     return;
   }

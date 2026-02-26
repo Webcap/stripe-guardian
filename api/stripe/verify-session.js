@@ -1,5 +1,6 @@
 const Stripe = require('stripe');
 const { wiznoteAdmin } = require('../../server/lib/supabase-admin');
+const { getCorsHeaders } = require('../../server/lib/cors');
 
 // Initialize Stripe client
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { 
@@ -9,15 +10,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 // Use wiznoteAdmin as supabase client for accessing user_profiles
 const supabase = wiznoteAdmin;
 
-// CORS headers for cross-origin requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Content-Type': 'application/json'
-};
-
 module.exports = async (req, res) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
     res.writeHead(200, corsHeaders);

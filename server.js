@@ -7,6 +7,7 @@
 
 const http = require('http');
 const subscriptionSync = require('./services/subscription-sync');
+const { getCorsHeaders } = require('./server/lib/cors');
 const PORT = process.env.PORT || process.env.APPLICATION_PORT || 8080;
 
 // Route mapping for API endpoints
@@ -36,15 +37,15 @@ const routes = {
 };
 
 const server = http.createServer(async (req, res) => {
-  // Set CORS headers - Allow all origins for development and production
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const corsHeaders = getCorsHeaders(req);
+  Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   // Handle OPTIONS preflight
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
+    res.writeHead(200, corsHeaders);
     res.end();
     return;
   }

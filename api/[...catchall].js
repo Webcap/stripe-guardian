@@ -1,12 +1,8 @@
 // Catch-all handler for malformed URLs and 404s
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Content-Type': 'application/json'
-};
+const { getCorsHeaders } = require('../server/lib/cors');
 
 module.exports = async (req, res) => {
+  const corsHeaders = getCorsHeaders(req);
   try {
     // Handle preflight OPTIONS request
     if (req.method === 'OPTIONS') {

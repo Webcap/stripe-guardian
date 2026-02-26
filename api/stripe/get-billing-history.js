@@ -1,5 +1,6 @@
 // Get billing history for a customer
 const { wiznoteAdmin } = require('../../server/lib/supabase-admin');
+const { getCorsHeaders } = require('../../server/lib/cors');
 const Stripe = require('stripe');
 
 // Initialize Stripe
@@ -11,31 +12,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 const supabase = wiznoteAdmin;
 
 module.exports = async (req, res) => {
-    // Set CORS headers
-    const allowedOrigins = [
-        'https://stripe.webcap.media',
-        'https://webcap.media',
-        'http://localhost:8081',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:8081',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001'
-    ];
-    
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    } else {
-        res.setHeader('Access-Control-Allow-Origin', 'https://stripe.webcap.media');
-    }
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    const corsHeaders = getCorsHeaders(req);
+    Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
+
     // Handle preflight request
     if (req.method === 'OPTIONS') {
-        res.writeHead(200);
+        res.writeHead(200, corsHeaders);
         res.end();
         return;
     }
