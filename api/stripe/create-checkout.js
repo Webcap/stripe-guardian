@@ -110,6 +110,26 @@ module.exports = async (req, res) => {
     }
     
     let customerId = (userRow && userRow.stripe_customer_id) ? userRow.stripe_customer_id : null;
+
+    // Validate stored customer exists in Stripe (handles test/live mismatch or deleted customers)
+    if (customerId) {
+      try {
+        await stripe.customers.retrieve(customerId);
+      } catch (stripeErr) {
+        const isNoSuchCustomer = stripeErr.code === 'resource_missing' ||
+          (stripeErr.message && stripeErr.message.includes('No such customer'));
+        if (isNoSuchCustomer) {
+          console.log(`Stored customer ${customerId} not found in Stripe, creating new customer`);
+          customerId = null;
+          await supabase
+            .from('user_profiles')
+            .update({ stripe_customer_id: null, updated_at: new Date().toISOString() })
+            .eq('id', userId);
+        } else {
+          throw stripeErr;
+        }
+      }
+    }
     
     if (!customerId) {
       // Check if a Stripe customer already exists with this email
