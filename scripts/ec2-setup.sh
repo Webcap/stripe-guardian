@@ -42,7 +42,7 @@ if [ -d "stripe-guardian" ]; then
 else
     # Prompt for repo if running locally, otherwise fall back to generic URL
     # Replace the URL with your actual Git repo
-    git clone https://github.com/USER/stripe-guardian.git || echo "⚠️ Please clone the repository manually."
+    git clone https://github.com/Webcap/stripe-guardian.git || echo "⚠️ Please clone the repository manually."
     cd stripe-guardian || exit
 fi
 
