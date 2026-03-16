@@ -34,21 +34,9 @@ else
     echo "⚠️ Unsupported setup OS for auto-install. Proceeding to clone repository only..."
 fi
 
-echo "📥 Cloning Stripe Guardian Repository..."
-if [ -d "stripe-guardian" ]; then
-    echo "Directory already exists. Pulling latest..."
-    cd stripe-guardian
-    git pull
-else
-    # Prompt for repo if running locally, otherwise fall back to generic URL
-    # Replace the URL with your actual Git repo
-    git clone https://github.com/Webcap/stripe-guardian.git || echo "⚠️ Please clone the repository manually."
-    cd stripe-guardian || exit
-fi
-
 echo "✅ Setup Complete!"
 echo "Next steps:"
 echo "1. Run 'logout' and log back in to apply Docker permissions."
-echo "2. Navigate to the repo: cd stripe-guardian"
+echo "2. Navigate to your repository directory"
 echo "3. Create your .env file: cp env-template.txt .env && nano .env"
 echo "4. Start the application: docker-compose up -d"

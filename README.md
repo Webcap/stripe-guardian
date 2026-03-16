@@ -377,7 +377,7 @@ Stripe Guardian is perfectly suited to run on an AWS EC2 instance using Docker C
 1. **Launch an EC2 Instance** - We recommend using Amazon Linux 2023 or Ubuntu 22.04 LTS. Open port `80` (HTTP API) and optionally port `3000` (Grafana) in the Security Group.
 2. **Setup the Instance** - SSH into your instance and run the pre-built setup script (or install Docker and Docker Compose manually):
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/<YOUR_GITHUB_USER>/stripe-guardian/main/scripts/ec2-setup.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/Webcap/stripe-guardian/main/scripts/ec2-setup.sh | bash
    ```
 3. **Configure Environment Variables** - Inside the `stripe-guardian` directory, create a `.env` file and add your credentials:
    ```env
