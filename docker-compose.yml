@@ -9,14 +9,13 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+      - PORT=3001
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
     volumes:
       - ./logs:/app/logs
-    ports:
-      - "3001:3001"
     networks:
       - stripe-network
     healthcheck:
@@ -43,6 +42,20 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     ports:
       - "3000:3000"
+    networks:
+      - stripe-network
+    depends_on:
+      - stripe-guardian
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: stripe-guardian-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - stripe-network
     depends_on:

@@ -369,6 +369,35 @@ npm run stripe:guardian
 # Guardian will monitor the Vercel webhook endpoint
 ```
 
+## 🚀 AWS EC2 Docker Deployment with Nginx
+
+Stripe Guardian is perfectly suited to run on an AWS EC2 instance using Docker Compose. The repository includes a `docker-compose.yml` that sets up the Node.js API, an Nginx reverse proxy, and an optional Grafana monitoring dashboard.
+
+### Quick Deploy
+1. **Launch an EC2 Instance** - We recommend using Amazon Linux 2023 or Ubuntu 22.04 LTS. Open port `80` (HTTP API) and optionally port `3000` (Grafana) in the Security Group.
+2. **Setup the Instance** - SSH into your instance and run the pre-built setup script (or install Docker and Docker Compose manually):
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/<YOUR_GITHUB_USER>/stripe-guardian/main/scripts/ec2-setup.sh | bash
+   ```
+3. **Configure Environment Variables** - Inside the `stripe-guardian` directory, create a `.env` file and add your credentials:
+   ```env
+   STRIPE_SECRET_KEY=sk_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   SUPABASE_URL=https://...
+   SUPABASE_SERVICE_ROLE_KEY=ey...
+   ```
+4. **Start the Application** - Run Docker Compose in detached mode:
+   ```bash
+   docker-compose up -d
+   ```
+
+### Update Stripe Webhook URL
+After deployment, update your Stripe webhook endpoint to the Elastic IP or custom domain mapped to your EC2 instance (which now routes through Nginx on port 80!):
+```
+http://<YOUR_EC2_IP>/api/webhook
+```
+
 ---
 
 **Built with ❤️ for reliable Stripe integration**
+
