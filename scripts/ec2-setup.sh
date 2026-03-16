@@ -28,9 +28,9 @@ if [[ "$OS" == "amzn" || "$OS" == "rhel" || "$OS" == "centos" ]]; then
     mkdir -p ~/.docker/cli-plugins
     ARCH=$(uname -m)
     if [ "$ARCH" = "x86_64" ]; then
-        BUILDX_URL="https://github.com/docker/buildx/releases/latest/download/buildx-v0.19.0.linux-amd64"
+        BUILDX_URL="https://github.com/docker/buildx/releases/download/v0.13.1/buildx-v0.13.1.linux-amd64"
     elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-        BUILDX_URL="https://github.com/docker/buildx/releases/latest/download/buildx-v0.19.0.linux-arm64"
+        BUILDX_URL="https://github.com/docker/buildx/releases/download/v0.13.1/buildx-v0.13.1.linux-arm64"
     else
         echo "Unsupported architecture for buildx: $ARCH"
         exit 1
