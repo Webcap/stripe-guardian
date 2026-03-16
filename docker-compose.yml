@@ -5,16 +5,11 @@ services:
       dockerfile: Dockerfile
     container_name: stripe-guardian
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SECRET_KEY=${SUPABASE_SECRET_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - WIZNOTE_SUPABASE_SECRET_KEY=${WIZNOTE_SUPABASE_SECRET_KEY}
-      - WIZNOTE_SUPABASE_SERVICE_KEY=${WIZNOTE_SUPABASE_SERVICE_KEY}
     volumes:
       - ./logs:/app/logs
     networks:
