@@ -39,12 +39,12 @@ RUN mkdir -p logs && \
 # Switch to non-root user
 USER nodejs
 
-# Expose port
-EXPOSE 8080
+# Expose port (default 3001)
+EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8080/api/health || exit 1
+    CMD curl -f http://localhost:3001/api/health || exit 1
 
 # Start the server
 CMD ["node", "server.js"]
