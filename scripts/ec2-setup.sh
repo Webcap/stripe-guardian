@@ -26,7 +26,16 @@ if [[ "$OS" == "amzn" || "$OS" == "rhel" || "$OS" == "centos" ]]; then
 
     # Install docker-buildx (for Amazon Linux 2023)
     mkdir -p ~/.docker/cli-plugins
-    curl -sL "https://github.com/docker/buildx/releases/latest/download/buildx-v0.19.0.linux-amd64" -o ~/.docker/cli-plugins/docker-buildx
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then
+        BUILDX_URL="https://github.com/docker/buildx/releases/latest/download/buildx-v0.19.0.linux-amd64"
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+        BUILDX_URL="https://github.com/docker/buildx/releases/latest/download/buildx-v0.19.0.linux-arm64"
+    else
+        echo "Unsupported architecture for buildx: $ARCH"
+        exit 1
+    fi
+    curl -sL "$BUILDX_URL" -o ~/.docker/cli-plugins/docker-buildx
     chmod +x ~/.docker/cli-plugins/docker-buildx
 
 elif [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
